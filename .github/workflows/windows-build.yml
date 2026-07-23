@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
@@ -33,19 +33,44 @@ jobs:
         shell: pwsh
         run: |
           @"
-          STARCONFIG
+          STARCONFIG 0.3.0
 
-          1. Extract the entire folder.
-          2. Run StarConfig.exe.
-          3. Select an exported Star Citizen XML profile.
-          4. Select an action, click Listen for Input, move or press the control, then save.
-
-          StarConfig creates a backup before every XML change.
+          Run StarConfig.exe, select a physical control, review its assignments across game states, and apply the checked mappings.
+          StarConfig can open any exported layout_*_exported.xml profile and remembers the profile for the next launch.
+          Every save creates a timestamped backup before replacing the original XML.
           "@ | Set-Content .\artifacts\StarConfig\START-HERE.txt
+
+      - name: Create installer payload
+        shell: pwsh
+        run: |
+          $payload = Join-Path $env:GITHUB_WORKSPACE 'src\StarConfig.Installer\Payload.zip'
+          if (Test-Path $payload) { Remove-Item $payload -Force }
+          Compress-Archive -Path '.\artifacts\StarConfig\*' -DestinationPath $payload -CompressionLevel Optimal
+          if (-not (Test-Path $payload)) { throw 'Payload.zip was not produced.' }
+
+      - name: Restore installer with embedded payload
+        run: dotnet restore .\src\StarConfig.Installer\StarConfig.Installer.csproj
+
+      - name: Publish installer
+        run: dotnet publish .\src\StarConfig.Installer\StarConfig.Installer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\Installer
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $installer = '.\artifacts\Installer\StarConfig-Setup.exe'
+          if (-not (Test-Path $installer)) { throw 'StarConfig-Setup.exe was not produced.' }
+          Get-Item $installer | Format-List FullName,Length,LastWriteTime
 
       - name: Upload Windows application
         uses: actions/upload-artifact@v4
         with:
-          name: StarConfig-win-x64
+          name: StarConfig-v0.3.0-portable
           path: artifacts/StarConfig
+          if-no-files-found: error
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: StarConfig-Setup-v0.3.0
+          path: artifacts/Installer/StarConfig-Setup.exe
           if-no-files-found: error
