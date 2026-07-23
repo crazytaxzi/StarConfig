@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarConfig", "src\StarConfig\StarConfig.csproj", "{44B62299-5F4D-44FE-A837-B57A8A7E3B11}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarConfig", "src\StarConfig.App\StarConfig.App.csproj", "{44B62299-5F4D-44FE-A837-B57A8A7E3B11}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
