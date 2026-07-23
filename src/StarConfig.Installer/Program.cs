@@ -9,6 +9,7 @@ namespace StarConfig.Installer;
 internal static class Program
 {
     private const string AppName = "StarConfig";
+    private const string AppVersion = "0.2.0";
     private static readonly string InstallDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Programs", AppName);
@@ -17,7 +18,6 @@ internal static class Program
     private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-
         try
         {
             if (args.Any(x => x.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
@@ -25,7 +25,6 @@ internal static class Program
                 Uninstall();
                 return;
             }
-
             Install();
         }
         catch (Exception ex)
@@ -37,11 +36,10 @@ internal static class Program
     private static void Install()
     {
         var answer = MessageBox.Show(
-            $"Install {AppName} for this Windows user?\n\nInstall location:\n{InstallDir}",
+            $"Install {AppName} {AppVersion} for this Windows user?\n\nInstall location:\n{InstallDir}",
             $"{AppName} Setup",
             MessageBoxButtons.OKCancel,
             MessageBoxIcon.Information);
-
         if (answer != DialogResult.OK) return;
 
         Directory.CreateDirectory(InstallDir);
@@ -55,40 +53,28 @@ internal static class Program
         if (!File.Exists(appExe))
             throw new FileNotFoundException("The installer payload did not contain StarConfig.exe.", appExe);
 
-        CreateShortcut(
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "StarConfig.lnk"),
-            appExe,
-            InstallDir);
-
-        CreateShortcut(
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "StarConfig.lnk"),
-            appExe,
-            InstallDir);
-
+        CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "StarConfig.lnk"), appExe, InstallDir);
+        CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "StarConfig.lnk"), appExe, InstallDir);
         RegisterUninstaller(installedInstaller);
 
         var runNow = MessageBox.Show(
-            "StarConfig was installed successfully.\n\nLaunch it now?",
+            $"StarConfig {AppVersion} was installed successfully.\n\nLaunch it now?",
             $"{AppName} Setup",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Information);
-
         if (runNow == DialogResult.Yes)
             Process.Start(new ProcessStartInfo(appExe) { UseShellExecute = true, WorkingDirectory = InstallDir });
     }
 
     private static void ExtractPayload(string destination)
     {
-        var resourceName = Assembly.GetExecutingAssembly()
-            .GetManifestResourceNames()
+        var resourceName = Assembly.GetExecutingAssembly().GetManifestResourceNames()
             .FirstOrDefault(x => x.EndsWith("Payload.zip", StringComparison.OrdinalIgnoreCase));
-
         if (resourceName is null)
             throw new InvalidOperationException("The installer payload is missing. Rebuild StarConfig-Setup.exe.");
 
         using var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
             ?? throw new InvalidOperationException("The installer payload could not be opened.");
-
         using var archive = new ZipArchive(payload, ZipArchiveMode.Read);
         foreach (var entry in archive.Entries)
         {
@@ -96,13 +82,11 @@ internal static class Program
             var root = Path.GetFullPath(destination) + Path.DirectorySeparatorChar;
             if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("The installer payload contains an invalid path.");
-
             if (string.IsNullOrEmpty(entry.Name))
             {
                 Directory.CreateDirectory(target);
                 continue;
             }
-
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             entry.ExtractToFile(target, true);
         }
@@ -112,7 +96,7 @@ internal static class Program
     {
         using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\StarConfig");
         key.SetValue("DisplayName", AppName);
-        key.SetValue("DisplayVersion", "1.0.0");
+        key.SetValue("DisplayVersion", AppVersion);
         key.SetValue("Publisher", "crazytaxzi");
         key.SetValue("InstallLocation", InstallDir);
         key.SetValue("DisplayIcon", Path.Combine(InstallDir, "StarConfig.exe"));
@@ -123,12 +107,7 @@ internal static class Program
 
     private static void Uninstall()
     {
-        var answer = MessageBox.Show(
-            "Remove StarConfig from this Windows account?",
-            $"Uninstall {AppName}",
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Warning);
-
+        var answer = MessageBox.Show("Remove StarConfig from this Windows account?", $"Uninstall {AppName}", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
         if (answer != DialogResult.Yes) return;
 
         TryDelete(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "StarConfig.lnk"));
@@ -141,12 +120,7 @@ internal static class Program
             "timeout /t 2 /nobreak >nul\r\n" +
             $"rmdir /s /q \"{InstallDir}\"\r\n" +
             "del /q \"%~f0\"\r\n");
-
-        Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{cleanupScript}\"")
-        {
-            CreateNoWindow = true,
-            UseShellExecute = false
-        });
+        Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{cleanupScript}\"") { CreateNoWindow = true, UseShellExecute = false });
     }
 
     private static void CreateShortcut(string shortcutPath, string targetPath, string workingDirectory)
