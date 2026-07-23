@@ -1,0 +1,79 @@
+<Window x:Class="StarConfig.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="StarConfig - Star Citizen Control Mapper" Width="1500" Height="900" MinWidth="1100" MinHeight="700">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12" CornerRadius="6">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <TextBlock Text="STARCONFIG" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="  Windows Star Citizen Control Mapper" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="RefreshDevicesButton" Content="Refresh Devices" Click="RefreshDevices_Click"/>
+                    <Button x:Name="ChooseFolderButton" Content="Choose Mappings Folder" Click="ChooseFolder_Click"/>
+                    <Button x:Name="LoadProfileButton" Content="Load Profile" Click="LoadProfile_Click"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="360"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10" CornerRadius="6">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="180"/></Grid.RowDefinitions>
+                    <TextBlock Text="CONNECTED PHYSICAL DEVICES" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox x:Name="DevicesList" Grid.Row="1" DisplayMemberPath="Summary"/>
+                    <TextBlock Grid.Row="2" Text="PROFILES" FontWeight="SemiBold" Margin="0,12,0,8"/>
+                    <ListBox x:Name="ProfilesList" Grid.Row="3" DisplayMemberPath="Name"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Margin="10,0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12" CornerRadius="6">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <DockPanel>
+                        <TextBlock Text="BINDINGS" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBox x:Name="SearchBox" Width="300" HorizontalAlignment="Right" TextChanged="SearchBox_TextChanged" ToolTip="Search actions, contexts, or inputs"/>
+                    </DockPanel>
+                    <ListBox x:Name="BindingsList" Grid.Row="1" Margin="0,10,0,0" SelectionChanged="BindingsList_SelectionChanged" DisplayMemberPath="Display"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12" CornerRadius="6">
+                <StackPanel>
+                    <TextBlock Text="SELECTED ACTION" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="ActionNameText" Text="Select a binding" FontSize="20" Margin="0,8,0,4" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="ActionContextText" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,12"/>
+                    <TextBlock Text="WHAT IT DOES" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="ActionDescriptionText" Text="Select an action to see its explanation." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,16"/>
+                    <TextBlock Text="CURRENT INPUT" FontWeight="SemiBold"/>
+                    <TextBox x:Name="InputTextBox" Margin="0,6,0,10"/>
+                    <Button x:Name="ApplyBindingButton" Content="Apply Binding Safely" Click="ApplyBinding_Click" IsEnabled="False"/>
+                    <Separator Margin="0,14"/>
+                    <TextBlock Text="INTENT ASSISTANT" FontWeight="SemiBold"/>
+                    <TextBlock Text="When multiple actions represent the same intent across Flight, Vehicle, On Foot, EVA, or Turret states, StarConfig will group them here and ask which states should share the control." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,10"/>
+                    <TextBlock Text="The first MVP preserves every action. It never silently merges Cycle, Toggle, or Direct Select commands." TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="10" CornerRadius="6">
+            <DockPanel>
+                <TextBlock x:Name="StatusText" Text="Ready. Windows only." VerticalAlignment="Center"/>
+                <Button DockPanel.Dock="Right" Content="Open RSI Launcher" Click="LaunchRsi_Click" Background="#175D2A"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
