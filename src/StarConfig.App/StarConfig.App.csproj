@@ -14,4 +14,7 @@
     <SelfContained>true</SelfContained>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System.Windows.Controls.Primitives" />
+  </ItemGroup>
 </Project>
