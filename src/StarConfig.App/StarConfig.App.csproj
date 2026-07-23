@@ -9,6 +9,7 @@
     <RootNamespace>StarConfig</RootNamespace>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <StartupObject>StarConfig.CockpitProgram</StartupObject>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <DebugType>embedded</DebugType>
