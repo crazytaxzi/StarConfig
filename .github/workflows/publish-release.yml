@@ -79,20 +79,20 @@ jobs:
           path: dist/Installer/StarConfig-Setup.exe
           if-no-files-found: error
 
-      - name: Publish StarConfig v0.2.0 prerelease
+      - name: Publish StarConfig v0.2.0 release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.2.0
           name: StarConfig v0.2.0
           target_commitish: main
           draft: false
-          prerelease: true
-          make_latest: false
+          prerelease: false
+          make_latest: true
           fail_on_unmatched_files: true
           overwrite_files: true
           files: dist/Installer/StarConfig-Setup.exe
           body: |
-            Cockpit interface redesign.
+            StarConfig v0.2.0 introduces the redesigned visual control cockpit.
 
             - Visual physical-control mapping workspace
             - Interactive joystick controls and live input capture
