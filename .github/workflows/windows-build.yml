@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -25,11 +26,26 @@ jobs:
       - name: Build
         run: dotnet build StarConfig.sln -c Release --no-restore
 
-      - name: Publish Windows x64
-        run: dotnet publish .\src\StarConfig\StarConfig.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\StarConfig
+      - name: Publish standalone Windows x64 app
+        run: dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\StarConfig
 
-      - name: Upload Windows build
+      - name: Include quick-start file
+        shell: pwsh
+        run: |
+          @"
+          STARCONFIG
+
+          1. Extract the entire folder.
+          2. Run StarConfig.exe.
+          3. Select an exported Star Citizen XML profile.
+          4. Select an action, click Listen for Input, move or press the control, then save.
+
+          StarConfig creates a backup before every XML change.
+          "@ | Set-Content .\artifacts\StarConfig\START-HERE.txt
+
+      - name: Upload Windows application
         uses: actions/upload-artifact@v4
         with:
           name: StarConfig-win-x64
           path: artifacts/StarConfig
+          if-no-files-found: error
