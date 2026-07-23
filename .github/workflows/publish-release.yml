@@ -3,14 +3,16 @@ name: Publish StarConfig Release
 on:
   push:
     branches: [ main ]
+    paths:
+      - '.release-trigger/**'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: starconfig-release
-  cancel-in-progress: true
+  group: starconfig-release-v0.2.0
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -41,8 +43,7 @@ jobs:
             --no-restore `
             -o $appOut
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $app = Join-Path $appOut 'StarConfig.exe'
-          if (-not (Test-Path $app)) { throw 'StarConfig.exe was not produced.' }
+          if (-not (Test-Path (Join-Path $appOut 'StarConfig.exe'))) { throw 'StarConfig.exe was not produced.' }
 
       - name: Create installer payload
         shell: powershell
@@ -69,22 +70,21 @@ jobs:
             --no-restore `
             -o $installerOut
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $installer = Join-Path $installerOut 'StarConfig-Setup.exe'
-          if (-not (Test-Path $installer)) { throw 'StarConfig-Setup.exe was not produced.' }
-          Get-Item $installer | Format-List FullName,Length,LastWriteTime
+          if (-not (Test-Path (Join-Path $installerOut 'StarConfig-Setup.exe'))) { throw 'StarConfig-Setup.exe was not produced.' }
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StarConfig-Setup
+          name: StarConfig-Setup-v0.2.0
           path: dist/Installer/StarConfig-Setup.exe
           if-no-files-found: error
 
-      - name: Publish or update v0.1.0 prerelease
+      - name: Publish StarConfig v0.2.0 prerelease
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0
-          name: StarConfig v0.1.0
+          tag_name: v0.2.0
+          name: StarConfig v0.2.0
+          target_commitish: main
           draft: false
           prerelease: true
           make_latest: false
@@ -92,15 +92,11 @@ jobs:
           overwrite_files: true
           files: dist/Installer/StarConfig-Setup.exe
           body: |
-            Initial Windows installer release of StarConfig.
+            Cockpit interface redesign.
 
-            Included:
-            - Visual Star Citizen control-profile editor
-            - Automatic profile discovery
-            - Searchable action browser
-            - Keyboard, mouse, joystick button, axis, and hat capture
-            - Cross-state binding selection
-            - Exact XML action-map editing
-            - Timestamped backups before every save
-            - RSI Launcher integration
-            - Per-user installation and uninstall support
+            - Visual physical-control mapping workspace
+            - Interactive joystick controls and live input capture
+            - Game-state assignment and conflict visibility
+            - Action browser moved to a secondary tool
+            - Safe Star Citizen XML editing with timestamped backups
+            - Self-contained Windows installer
