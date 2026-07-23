@@ -9,7 +9,7 @@ namespace StarConfig.Installer;
 internal static class Program
 {
     private const string AppName = "StarConfig";
-    private const string AppVersion = "0.2.0";
+    private const string AppVersion = "0.3.0";
     private static readonly string InstallDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Programs", AppName);

@@ -4,14 +4,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '.release-trigger/**'
+      - '.release-trigger/v0.3.0.txt'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: starconfig-release-v0.2.0
+  group: starconfig-release-v0.3.0
   cancel-in-progress: false
 
 jobs:
@@ -27,76 +27,67 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore application
-        run: dotnet restore .\src\StarConfig.App\StarConfig.App.csproj
-
-      - name: Publish StarConfig application
-        shell: powershell
+      - name: Restore and build application
         run: |
-          $appOut = Join-Path $env:GITHUB_WORKSPACE 'dist\StarConfig'
-          New-Item -ItemType Directory -Force -Path $appOut | Out-Null
-          dotnet publish .\src\StarConfig.App\StarConfig.App.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -p:PublishSingleFile=true `
-            --no-restore `
-            -o $appOut
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path (Join-Path $appOut 'StarConfig.exe'))) { throw 'StarConfig.exe was not produced.' }
+          dotnet restore .\src\StarConfig.App\StarConfig.App.csproj
+          dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\dist\StarConfig
 
       - name: Create installer payload
-        shell: powershell
+        shell: pwsh
         run: |
-          $appOut = Join-Path $env:GITHUB_WORKSPACE 'dist\StarConfig'
-          $payload = Join-Path $env:GITHUB_WORKSPACE 'src\StarConfig.Installer\Payload.zip'
+          $app = '.\dist\StarConfig\StarConfig.exe'
+          if (-not (Test-Path $app)) { throw 'StarConfig.exe was not produced.' }
+          $payload = '.\src\StarConfig.Installer\Payload.zip'
           if (Test-Path $payload) { Remove-Item $payload -Force }
-          Compress-Archive -Path "$appOut\*" -DestinationPath $payload -CompressionLevel Optimal
+          Compress-Archive -Path '.\dist\StarConfig\*' -DestinationPath $payload -CompressionLevel Optimal
           if (-not (Test-Path $payload)) { throw 'Payload.zip was not produced.' }
 
-      - name: Restore installer
-        run: dotnet restore .\src\StarConfig.Installer\StarConfig.Installer.csproj
-
-      - name: Publish StarConfig installer
-        shell: powershell
+      - name: Build installer
         run: |
-          $installerOut = Join-Path $env:GITHUB_WORKSPACE 'dist\Installer'
-          New-Item -ItemType Directory -Force -Path $installerOut | Out-Null
-          dotnet publish .\src\StarConfig.Installer\StarConfig.Installer.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -p:PublishSingleFile=true `
-            --no-restore `
-            -o $installerOut
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path (Join-Path $installerOut 'StarConfig-Setup.exe'))) { throw 'StarConfig-Setup.exe was not produced.' }
+          dotnet restore .\src\StarConfig.Installer\StarConfig.Installer.csproj
+          dotnet publish .\src\StarConfig.Installer\StarConfig.Installer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\dist\Installer
 
-      - name: Upload installer artifact
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $installer = '.\dist\Installer\StarConfig-Setup.exe'
+          if (-not (Test-Path $installer)) { throw 'StarConfig-Setup.exe was not produced.' }
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash
+          "SHA256: $hash" | Set-Content '.\dist\Installer\StarConfig-Setup.exe.sha256.txt'
+          Get-Item $installer | Format-List FullName,Length,LastWriteTime
+
+      - name: Upload verified installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StarConfig-Setup-v0.2.0
-          path: dist/Installer/StarConfig-Setup.exe
+          name: StarConfig-Setup-v0.3.0
+          path: |
+            dist/Installer/StarConfig-Setup.exe
+            dist/Installer/StarConfig-Setup.exe.sha256.txt
           if-no-files-found: error
 
-      - name: Publish StarConfig v0.2.0 release
+      - name: Publish StarConfig v0.3.0 release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.0
-          name: StarConfig v0.2.0
+          tag_name: v0.3.0
+          name: StarConfig v0.3.0
           target_commitish: main
           draft: false
           prerelease: false
           make_latest: true
           fail_on_unmatched_files: true
           overwrite_files: true
-          files: dist/Installer/StarConfig-Setup.exe
+          files: |
+            dist/Installer/StarConfig-Setup.exe
+            dist/Installer/StarConfig-Setup.exe.sha256.txt
           body: |
-            StarConfig v0.2.0 introduces the redesigned visual control cockpit.
+            StarConfig v0.3.0 rebuilds the application around the actual control-mapping job.
 
-            - Visual physical-control mapping workspace
-            - Interactive joystick controls and live input capture
-            - Game-state assignment and conflict visibility
-            - Action browser moved to a secondary tool
-            - Safe Star Citizen XML editing with timestamped backups
-            - Self-contained Windows installer
+            - Select a physical keyboard, mouse, joystick button, hat or axis first
+            - See that control's existing assignments across Flight, Vehicle, On Foot, EVA, Turret, Mining and Salvage
+            - Choose or remove each state assignment in one workspace
+            - Receive explicit same-intent suggestions without merging toggle, cycle, hold or axis behaviors
+            - Browse actions with human-readable explanations and semantic peers
+            - Detect duplicate and unrelated bindings before saving
+            - Open exported layout_*_exported.xml profiles directly and remember the selected profile
+            - Validate and back up profiles before safe XML replacement
+            - Install as a self-contained Windows application with no separate .NET runtime required
