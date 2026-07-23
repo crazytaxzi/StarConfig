@@ -80,13 +80,16 @@ jobs:
           path: dist/Installer/StarConfig-Setup.exe
           if-no-files-found: error
 
-      - name: Publish v0.1.0 prerelease
+      - name: Publish or update v0.1.0 prerelease
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.1.0
           name: StarConfig v0.1.0
+          draft: false
           prerelease: true
           make_latest: false
+          fail_on_unmatched_files: true
+          overwrite_files: true
           files: dist/Installer/StarConfig-Setup.exe
           body: |
             Initial Windows installer release of StarConfig.
