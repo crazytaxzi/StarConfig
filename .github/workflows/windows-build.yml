@@ -45,7 +45,25 @@ jobs:
         run: exit 1
 
       - name: Run Star Citizen profile regression tests
-        run: dotnet run --project .\src\StarConfig.Smoke\StarConfig.Smoke.csproj -c Release
+        id: regression
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet run --project .\src\StarConfig.Smoke\StarConfig.Smoke.csproj -c Release 2>&1 | Tee-Object -FilePath regression-output.txt
+          exit $LASTEXITCODE
+
+      - name: Upload regression diagnostics
+        if: steps.regression.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Starbind-regression-errors
+          path: regression-output.txt
+          if-no-files-found: error
+
+      - name: Stop after regression failure
+        if: steps.regression.outcome == 'failure'
+        shell: pwsh
+        run: exit 1
 
       - name: Publish Starbind portable application
         run: dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\Starbind
