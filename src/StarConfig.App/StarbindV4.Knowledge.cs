@@ -4,9 +4,11 @@ public sealed class StarbindActionKnowledge
 {
     private static readonly (string[] Tokens, string Intent, string Category, string Description)[] Rules =
     [
-        (["strafe_longitudinal", "throttleabs", "moveforward", "moveback", "forward_backward"], "Move Forward / Backward", "Movement", "Moves forward or backward relative to the current orientation."),
-        (["strafe_lateral", "movex", "moveleft", "moveright", "left_right"], "Move Left / Right", "Movement", "Moves left or right without changing the current facing."),
+        (["strafe_longitudinal", "throttle_abs", "vehicle_throttle", "moveforward", "moveback", "forward_backward"], "Move Forward / Backward", "Movement", "Moves forward or backward relative to the current orientation."),
+        (["strafe_lateral", "vehicle_steer", "movex", "moveleft", "moveright", "left_right"], "Move Left / Right", "Movement", "Moves left or right without changing the current facing."),
         (["strafe_vertical", "strafe_up", "strafe_down", "moveup", "movedown"], "Move Up / Down", "Movement", "Moves vertically up or down."),
+        (["turret_elevation"], "Turret Elevation", "Turret", "Moves the turret barrel up or down."),
+        (["turret_azimuth"], "Turret Left / Right", "Turret", "Rotates the turret left or right."),
         (["pitch"], "Rotate Pitch", "Movement", "Rotates the view, character or vehicle nose up and down."),
         (["yaw"], "Rotate Yaw", "Movement", "Rotates the view, character or vehicle left and right."),
         (["roll"], "Rotate Roll", "Movement", "Rolls the ship or vehicle around its forward axis."),
@@ -14,18 +16,18 @@ public sealed class StarbindActionKnowledge
         (["jump"], "Jump", "Movement", "Makes the character jump or perform the equivalent upward movement."),
         (["crouch", "stance_crouch"], "Crouch", "Movement", "Changes the character to or from a crouched stance."),
         (["prone"], "Prone", "Movement", "Changes the character to or from a prone stance."),
-        (["attack1", "weapon_fire_group_1", "fire_primary"], "Primary Fire", "Weapons", "Activates the primary weapon or attack for this game state."),
-        (["attacksecondary", "weapon_fire_group_2", "fire_secondary"], "Secondary Fire", "Weapons", "Activates the secondary weapon or alternate attack for this game state."),
+        (["attack1", "weapon_fire_group_1", "fire_primary"], "Primary Fire", "Weapons", "Activates the primary weapon or tool for this game state."),
+        (["attacksecondary", "weapon_fire_group_2", "fire_secondary"], "Secondary Fire", "Weapons", "Activates the secondary weapon or alternate action for this game state."),
         (["reload"], "Reload", "Weapons", "Reloads the currently equipped weapon or tool."),
         (["melee"], "Melee Attack", "Weapons", "Performs the applicable close-range attack."),
         (["missile", "ordnance"], "Missile Control", "Weapons", "Controls missile selection, lock, firing or ordnance behavior."),
         (["countermeasure", "flare", "noise", "decoy"], "Countermeasures", "Defensive", "Deploys or manages defensive countermeasures."),
         (["shield"], "Shield Control", "Defensive", "Adjusts, focuses or redistributes shield power."),
-        (["target"], "Targeting", "Targeting", "Selects, cycles, pins or manages a target."),
+        (["target"], "Targeting", "Targeting", "Selects, cycles, pins, locks or manages a target."),
         (["scan", "ping", "radar"], "Scanning", "Scanning", "Controls scanning, radar, pinging or scan focus."),
         (["operator_mode"], "Operator Mode", "Modes", "Changes the active operator task inside the current master mode."),
         (["master_mode"], "Master Mode", "Modes", "Changes the ship's broad operating mode. This is separate from operator mode."),
-        (["quantum", "qdrive"], "Quantum Drive", "Navigation", "Controls quantum travel mode, route engagement or quantum drive operation."),
+        (["quantum", "qdrive"], "Quantum Drive", "Navigation", "Controls quantum travel mode, route engagement or quantum-drive operation."),
         (["autoland", "landing", "landing_gear"], "Landing", "Flight Systems", "Controls landing assistance, landing gear or landing requests."),
         (["atc", "loading_area_request", "hangar_request"], "ATC Request", "Flight Systems", "Requests landing, takeoff or loading-area service from local traffic control."),
         (["cruise"], "Cruise Control", "Flight Systems", "Controls cruise speed or cruise-control engagement."),
@@ -47,15 +49,15 @@ public sealed class StarbindActionKnowledge
         (["foip", "head_tracking", "optical_tracking"], "Head / Face Tracking", "Camera / View", "Controls face, head or optical tracking features."),
         (["view", "camera", "look"], "Camera / View", "Camera / View", "Controls camera position, view mode or look direction."),
         (["zoom"], "Zoom", "Camera / View", "Adjusts view, scope or camera zoom."),
-        (["mining_throttle", "mining_power", "laser_power"], "Mining Power", "Mining", "Controls mining laser output power."),
-        (["mining_mode", "mining_laser", "mining"], "Mining Tool", "Mining", "Controls mining mode, mining tools or mining laser functions."),
+        (["mining_throttle", "mining_power", "laser_power"], "Mining Power", "Mining", "Controls mining-laser output power."),
+        (["mining_mode", "mining_laser", "mining"], "Mining Tool", "Mining", "Controls mining mode, mining tools or mining-laser functions."),
         (["salvage"], "Salvage Tool", "Salvage", "Controls salvage mode, scraping, fracture or salvage-tool functions."),
         (["tractor"], "Tractor Beam", "Cargo / Utility", "Controls tractor-beam activation, movement or strength."),
         (["cargo"], "Cargo Control", "Cargo / Utility", "Controls cargo-related functions."),
         (["turret"], "Turret Control", "Turret", "Controls turret movement, firing or turret operation."),
         (["eject"], "Eject", "Emergency", "Activates the ejection system. This action should remain intentionally distinct."),
         (["self_destruct"], "Self Destruct", "Emergency", "Arms, disarms or confirms self-destruction. This action should remain intentionally distinct."),
-        (["respawn", "suicide"], "Respawn", "Emergency", "Triggers the applicable respawn or character reset action."),
+        (["respawn", "suicide"], "Respawn", "Emergency", "Triggers the applicable respawn or character-reset action."),
         (["toggle_flashlight", "flashlight"], "Flashlight", "Equipment", "Toggles or controls the equipped flashlight."),
         (["helmet"], "Helmet", "Equipment", "Equips, removes or manages the helmet."),
         (["weapon_select", "select_weapon", "holster"], "Weapon Selection", "Equipment", "Selects, equips or holsters a weapon."),
@@ -72,16 +74,15 @@ public sealed class StarbindActionKnowledge
         var rule = Rules.FirstOrDefault(candidate => candidate.Tokens.Any(token => combined.Contains(token, StringComparison.OrdinalIgnoreCase)));
         var intent = rule.Intent ?? StarbindText.Humanize(actionName);
         var category = ContextCategory(context, rule.Category ?? InferCategory(lowerAction, lowerMap));
-        var core = rule.Description ?? $"{StarbindText.Humanize(actionName)} in the {StarbindText.Humanize(mapName)} action map.";
+        var core = rule.Description ?? $"Controls {StarbindText.Humanize(actionName).ToLowerInvariant()} in the {StarbindText.Humanize(mapName)} group.";
         var contextNote = ContextNote(context, intent);
         var distinction = intent switch
         {
-            "Operator Mode" => " Operator Mode is a task-level mode and is not interchangeable with Master Mode.",
-            "Master Mode" => " Master Mode is the ship's broad operating state and is not interchangeable with Operator Mode.",
+            "Operator Mode" => " Operator Mode changes the current task inside a master mode and is not interchangeable with Master Mode.",
+            "Master Mode" => " Master Mode changes the ship's broad operating state and is not interchangeable with Operator Mode.",
             _ => string.Empty
         };
-        var description = $"{contextNote}{core}{distinction} Behavior: {behavior}. Starbind keeps Axis, Toggle, Cycle, Hold and Direct actions separate.";
-        return new StarbindActionInfo(context, category, intent, behavior, description);
+        return new StarbindActionInfo(context, category, intent, behavior, $"{contextNote}{core}{distinction}".Trim());
     }
 
     private static string ClassifyBehavior(string action, string map)
@@ -107,7 +108,10 @@ public sealed class StarbindActionKnowledge
 
     private static bool IsAxisAction(string action, string map)
     {
-        if (action is "gp_movex" or "gp_movey" or "gp_rotatepitch" or "gp_rotateyaw" or "v_roll" or "v_yaw" or "v_pitch" or "v_strafe_lateral" or "v_strafe_longitudinal" or "v_strafe_vertical" or "v_mining_throttle") return true;
+        if (action is "gp_movex" or "gp_movey" or "gp_rotatepitch" or "gp_rotateyaw"
+            or "v_roll" or "v_yaw" or "v_pitch" or "v_strafe_lateral" or "v_strafe_longitudinal" or "v_strafe_vertical"
+            or "v_mining_throttle" or "moveforward" or "moveback" or "moveleft" or "moveright"
+            or "vehicle_throttle_abs" or "vehicle_steer" or "turret_elevation" or "turret_azimuth") return true;
         return action.Contains("throttle", StringComparison.OrdinalIgnoreCase)
             || action.Contains("strafe", StringComparison.OrdinalIgnoreCase)
             || action.Contains("rotate", StringComparison.OrdinalIgnoreCase)
@@ -148,13 +152,21 @@ public sealed class StarbindActionKnowledge
     {
         "Move Forward / Backward" => context switch
         {
-            "Flight" => "For ships, this translates along the longitudinal axis. ",
-            "Vehicle" => "For ground vehicles, this controls forward and reverse movement. ",
-            "On Foot" => "For characters, this controls forward and backward movement. ",
+            "Flight" => "Translates the ship forward or backward along its longitudinal axis. ",
+            "Vehicle" => "Controls forward and reverse throttle for a ground vehicle. ",
+            "On Foot" => "Moves the character forward or backward. ",
+            "EVA" => "Moves the character forward or backward in EVA. ",
             _ => string.Empty
         },
-        "Primary Fire" when context == "Mining" => "In mining, primary fire activates the mining tool rather than a weapon. ",
-        "Primary Fire" when context == "Salvage" => "In salvage, primary fire activates the selected salvage tool. ",
+        "Move Left / Right" => context switch
+        {
+            "Flight" => "Strafes the ship left or right without changing its facing. ",
+            "Vehicle" => "Steers the ground vehicle left or right. ",
+            "On Foot" => "Moves the character left or right. ",
+            _ => string.Empty
+        },
+        "Primary Fire" when context == "Mining" => "Activates the mining tool rather than a weapon. ",
+        "Primary Fire" when context == "Salvage" => "Activates the selected salvage tool. ",
         _ => string.Empty
     };
 }

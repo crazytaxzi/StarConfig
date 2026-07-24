@@ -88,14 +88,16 @@ public sealed partial class StarbindV5Window
     {
         _deviceCards.Children.Clear();
         var devices = CurrentDevices();
-        foreach (var device in devices)
+        var cardDevices = devices.Where(device => device.Kind is StarbindDeviceKind.Joystick or StarbindDeviceKind.Gamepad).ToList();
+        if (cardDevices.Count == 0) cardDevices = devices.ToList();
+        foreach (var device in cardDevices)
         {
             var template = _hardware.Resolve(device, _settings);
             var selected = _selectedDevice is not null && SameDevice(_selectedDevice, device);
             var card = new Button
             {
-                Width = template.Family is HardwareFamily.Keyboard or HardwareFamily.Mouse ? 182 : 238,
-                Height = 60,
+                Width = 226,
+                Height = 64,
                 Margin = new Thickness(0, 0, 8, 0),
                 Padding = new Thickness(8),
                 Background = selected ? BlueDim : Panel2,
@@ -108,17 +110,17 @@ public sealed partial class StarbindV5Window
                 ToolTip = device.IsConnected ? "Detected live by Windows." : "Present in the loaded Star Citizen profile but not detected live by Windows."
             };
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(58) });
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-            grid.Children.Add(BuildDeviceThumbnail(template));
+            grid.Children.Add(BuildDeviceThumbnail(template, device));
             var words = new StackPanel { Margin = new Thickness(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-            words.Children.Add(new TextBlock { Text = device.ProductName, FontSize = 11, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+            words.Children.Add(new TextBlock { Text = device.ProductName, FontSize = 10.5, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
             words.Children.Add(new TextBlock
             {
-                Text = $"{device.SlotLabel}  •  {template.Family}  •  {(device.IsConnected ? "LIVE" : "PROFILE ONLY")}",
+                Text = $"{device.SlotLabel}  •  {DeviceRole(template)}  •  {(device.IsConnected ? "LIVE" : "PROFILE ONLY")}",
                 Foreground = device.IsConnected ? Muted : Amber,
-                FontSize = 9.5,
+                FontSize = 9,
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
             Grid.SetColumn(words, 1);
@@ -134,8 +136,8 @@ public sealed partial class StarbindV5Window
         var add = new Button
         {
             Content = "+\nAdd Device",
-            Width = 120,
-            Height = 60,
+            Width = 112,
+            Height = 64,
             Background = Panel2,
             Foreground = Muted,
             BorderBrush = Border,
@@ -143,28 +145,43 @@ public sealed partial class StarbindV5Window
         };
         add.Click += OpenDeviceManager;
         _deviceCards.Children.Add(add);
-        var live = devices.Count(device => device.IsConnected);
-        var profileOnly = devices.Count - live;
-        _deviceCountText.Text = profileOnly > 0 ? $"{live} LIVE  •  {profileOnly} PROFILE" : $"{live} LIVE";
+        var physical = devices.Where(device => device.Kind is StarbindDeviceKind.Joystick or StarbindDeviceKind.Gamepad).ToList();
+        var live = physical.Count(device => device.IsConnected);
+        var profileOnly = physical.Count - live;
+        _deviceCountText.Text = profileOnly > 0 ? $"{live} LIVE  •  {profileOnly} PROFILE" : $"{live} CONNECTED";
         _deviceCountText.Foreground = profileOnly > 0 ? Amber : Green;
     }
 
-    private UIElement BuildDeviceThumbnail(HardwareTemplate template)
+    private static string DeviceRole(HardwareTemplate template) => template.Family switch
+    {
+        HardwareFamily.Throttle => "THROTTLE",
+        HardwareFamily.Pedals => "PEDALS",
+        HardwareFamily.Gamepad => "GAMEPAD",
+        _ => "JOYSTICK"
+    };
+
+    private UIElement BuildDeviceThumbnail(HardwareTemplate template, StarbindDevice device)
     {
         if (template.ArtworkKey == "joystick")
         {
+            var image = new Image { Source = StarbindArtwork.LoadJoystick(), Stretch = Stretch.Uniform, Margin = new Thickness(2) };
+            if (device.ProductName.Contains(" EVO L", StringComparison.OrdinalIgnoreCase) || device.ProductName.Contains(" LEFT", StringComparison.OrdinalIgnoreCase))
+            {
+                image.RenderTransformOrigin = new Point(.5, .5);
+                image.RenderTransform = new ScaleTransform(-1, 1);
+            }
             return new Border
             {
-                Width = 46,
-                Height = 46,
+                Width = 52,
+                Height = 52,
                 Background = Field,
                 BorderBrush = Border,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(5),
-                Child = new Image { Source = StarbindArtwork.LoadJoystick(), Stretch = Stretch.Uniform, Margin = new Thickness(2) }
+                Child = image
             };
         }
-        return DeviceArtworkFactory.BuildThumbnail(template.Family, 46, 46, Field, Cyan, Muted);
+        return DeviceArtworkFactory.BuildThumbnail(template.Family, 52, 52, Field, Cyan, Muted);
     }
 
     private void BuildDevicePicker()
@@ -234,8 +251,8 @@ public sealed partial class StarbindV5Window
                 {
                     Text = count > 0 ? $"{count} bind{(count == 1 ? string.Empty : "s")}" : string.Empty,
                     Foreground = count > 0 ? Green : Faint,
-                    FontSize = 9,
-                    Margin = new Thickness(8, 0, 0, 0),
+                    FontSize = 8.5,
+                    Margin = new Thickness(6, 0, 0, 0),
                     ToolTip = count > 0 ? $"{count} current assignment{(count == 1 ? string.Empty : "s")}" : "Unassigned"
                 };
                 DockPanel.SetDock(badge, Dock.Right);
@@ -271,7 +288,7 @@ public sealed partial class StarbindV5Window
     {
         _selectedControl = control;
         _selectedControlName.Text = control.DisplayName;
-        _selectedControlInput.Text = $"Physical input: {control.Input}";
+        _selectedControlInput.Text = $"Physical: {control.Input}";
         _selectedControlType.Text = control.Kind.ToString();
         _selectedControlAssignmentCount.Text = EffectiveAssignments(control).Count().ToString(CultureInfo.InvariantCulture);
         LoadAxisSettings(control);
@@ -298,6 +315,7 @@ public sealed partial class StarbindV5Window
             _actionDescription.Text = "This physical control is unassigned. Choose a primary action or select one in the action browser.";
             _similarActions.Children.Clear();
         }
+        RefreshMappingAssistant();
         SetStatus($"Selected {control.DisplayName}. Review its state assignments, then save when ready.");
     }
 
