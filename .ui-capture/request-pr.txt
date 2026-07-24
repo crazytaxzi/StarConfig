@@ -1,0 +1,1 @@
+Capture the actual Starbind v0.5.0 application window through the PR runner.
