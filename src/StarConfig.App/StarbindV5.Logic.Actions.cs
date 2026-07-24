@@ -65,7 +65,7 @@ public sealed partial class StarbindV5Window
         var explanation = ActionExplanation(action);
         _actionDescription.Text = explanation;
         _browserActionTitle.Text = $"{action.DisplayName} ({action.Context})";
-        _browserActionBody.Text = $"{explanation}\n\nCategory: {action.Category}\nBehavior: {action.Behavior}\nIntent: {action.Intent}\nAction map: {action.ActionMap}\nRaw action: {action.ActionName}";
+        _browserActionBody.Text = $"{explanation}\n\nCategory: {action.Category}\nBehavior: {action.Behavior}\nIntent: {action.Intent}\n\nAdvanced details\nAction map: {action.ActionMap}\nRaw action: {action.ActionName}";
         _similarActions.Children.Clear();
         var peers = _profile is null ? [] : UniqueActions(_profile.Actions)
             .Where(candidate => candidate.Identity != action.Identity && !string.IsNullOrWhiteSpace(action.Intent) && candidate.Intent.Equals(action.Intent, StringComparison.OrdinalIgnoreCase))
@@ -104,6 +104,7 @@ public sealed partial class StarbindV5Window
         if (_profile is null || _selectedControl is null)
         {
             _stateRows.Children.Add(new TextBlock { Text = "Select a profile and physical control.", Foreground = Muted });
+            RefreshMappingAssistant();
             return;
         }
 
@@ -115,7 +116,7 @@ public sealed partial class StarbindV5Window
             var row = new Grid { Margin = new Thickness(0, 0, 0, 5) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(76) });
             row.ColumnDefinitions.Add(new ColumnDefinition());
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
             var check = new CheckBox { Content = context, Foreground = Text, VerticalAlignment = VerticalAlignment.Center, IsChecked = state.Enabled, Tag = state };
             check.Checked += StateCheckChanged;
             check.Unchecked += StateCheckChanged;
@@ -126,13 +127,10 @@ public sealed partial class StarbindV5Window
             {
                 ItemsSource = choices,
                 SelectedItem = state.Action is null ? null : choices.FirstOrDefault(choice => SameAction(choice.Action, state.Action)),
-                Background = Field,
-                Foreground = Text,
-                BorderBrush = Border,
-                Padding = new Thickness(5, 3, 5, 3),
                 Tag = state,
                 ToolTip = "Choose the action for this game state"
             };
+            StyleCombo(picker);
             picker.SelectionChanged += StatePickerChanged;
             _statePickers[context] = picker;
             Grid.SetColumn(picker, 1);
@@ -153,6 +151,7 @@ public sealed partial class StarbindV5Window
         _primaryActionPicker.ItemsSource = allActions;
         _primaryActionPicker.SelectedItem = _selectedAction is null ? null : allActions.FirstOrDefault(choice => SameAction(choice.Action, _selectedAction));
         _suppressUi = false;
+        RefreshMappingAssistant();
     }
 
     private ControlBindingPlan GetOrCreatePlan(StarbindControl control)
@@ -196,6 +195,7 @@ public sealed partial class StarbindV5Window
         MarkCurrentPlanDirty();
         BuildWarnings();
         BuildStateOverview();
+        RefreshMappingAssistant();
     }
 
     private void StatePickerChanged(object sender, SelectionChangedEventArgs e)
@@ -211,6 +211,7 @@ public sealed partial class StarbindV5Window
         MarkCurrentPlanDirty();
         BuildWarnings();
         BuildStateOverview();
+        RefreshMappingAssistant();
     }
 
     private void PrimaryActionChanged()
@@ -248,32 +249,128 @@ public sealed partial class StarbindV5Window
         MarkCurrentPlanDirty();
         BuildWarnings();
         BuildStateOverview();
-        SetStatus($"Suggested compatible {action.Behavior.ToLowerInvariant()} actions for '{action.Intent}'. Nothing is saved until you confirm and use Save.");
+        RefreshMappingAssistant();
+        SetStatus($"Suggested compatible {action.Behavior.ToLowerInvariant()} actions for '{action.Intent}'. Keep all or choose the states that should use this physical control.");
+    }
+
+    private void RefreshMappingAssistant()
+    {
+        _mappingAssistantStates.Children.Clear();
+        if (_profile is null || _selectedControl is null)
+        {
+            _mappingAssistantHost.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var states = _visibleStates.Values.Where(state => state.Action is not null && state.Enabled).OrderBy(state => ContextIndex(state.Context)).ToList();
+        if (states.Count < 2)
+        {
+            _mappingAssistantHost.Visibility = Visibility.Collapsed;
+            _mappingAssistantChooser.Visibility = Visibility.Collapsed;
+            return;
+        }
+        _mappingAssistantHost.Visibility = Visibility.Visible;
+        _mappingAssistantBody.Text = $"{_selectedControl.DisplayName} ({_selectedControl.Input}) can perform related actions in multiple game states. Starbind will not silently merge or remove them.";
+        foreach (var state in states.Take(7))
+        {
+            _mappingAssistantStates.Children.Add(new TextBlock
+            {
+                Text = $"{ContextGlyph(state.Context)}  {state.Context}: {state.Action!.DisplayName}",
+                Foreground = state.HasConflict ? Amber : Text,
+                FontSize = 9.5,
+                Margin = new Thickness(0, 1, 0, 1),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+        }
+    }
+
+    private void MappingAssistantKeepAll(object sender, RoutedEventArgs e)
+    {
+        if (_selectedControl is null) return;
+        var changed = false;
+        _suppressUi = true;
+        try
+        {
+            foreach (var state in _visibleStates.Values.Where(state => state.Action is not null))
+            {
+                if (!state.Enabled) changed = true;
+                state.Enabled = true;
+                UpdateStateStatus(state);
+                if (_stateChecks.TryGetValue(state.Context, out var check)) check.IsChecked = true;
+            }
+        }
+        finally { _suppressUi = false; }
+        _mappingAssistantChooser.Visibility = Visibility.Collapsed;
+        if (changed) MarkCurrentPlanDirty();
+        BuildWarnings();
+        BuildStateOverview();
+        RefreshMappingAssistant();
+        SetStatus("All displayed state assignments will keep this physical control. Nothing is written until Save.");
+    }
+
+    private void MappingAssistantChoose(object sender, RoutedEventArgs e)
+    {
+        _mappingAssistantChecks.Clear();
+        _mappingAssistantChooserRows.Children.Clear();
+        foreach (var state in _visibleStates.Values.Where(state => state.Action is not null).OrderBy(state => ContextIndex(state.Context)))
+        {
+            var check = new CheckBox
+            {
+                Content = $"{state.Context} - {state.Action!.DisplayName}",
+                IsChecked = state.Enabled,
+                Foreground = Text,
+                Margin = new Thickness(0, 2, 0, 2),
+                ToolTip = state.Action.Description
+            };
+            _mappingAssistantChecks[state.Context] = check;
+            _mappingAssistantChooserRows.Children.Add(check);
+        }
+        _mappingAssistantChooser.Visibility = Visibility.Visible;
+    }
+
+    private void MappingAssistantConfirm(object sender, RoutedEventArgs e)
+    {
+        if (_selectedControl is null) return;
+        _suppressUi = true;
+        try
+        {
+            foreach (var state in _visibleStates.Values.Where(state => state.Action is not null))
+            {
+                state.Enabled = _mappingAssistantChecks.TryGetValue(state.Context, out var check) && check.IsChecked == true;
+                UpdateStateStatus(state);
+                if (_stateChecks.TryGetValue(state.Context, out var stateCheck)) stateCheck.IsChecked = state.Enabled;
+            }
+        }
+        finally { _suppressUi = false; }
+        _mappingAssistantChooser.Visibility = Visibility.Collapsed;
+        MarkCurrentPlanDirty();
+        BuildWarnings();
+        BuildStateOverview();
+        RefreshMappingAssistant();
+        SetStatus("State choices confirmed. Unchecked states will lose this physical input when the profile is saved.");
     }
 
     private void BuildStateOverview()
     {
         _stateOverview.Children.Clear();
         if (_selectedControl is null) return;
-        foreach (var state in _visibleStates.Values)
+        foreach (var state in _visibleStates.Values.OrderBy(state => ContextIndex(state.Context)))
         {
             var card = new Border
             {
-                Width = 122,
-                Height = 180,
-                Margin = new Thickness(0, 0, 6, 0),
-                Padding = new Thickness(8),
+                Width = 116,
+                Height = 92,
+                Margin = new Thickness(0, 0, 5, 5),
+                Padding = new Thickness(7),
                 Background = Field,
                 BorderBrush = state.Enabled ? Blue : Border,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4)
+                CornerRadius = new CornerRadius(4),
+                ToolTip = $"{state.Context}\n{state.Action?.DisplayName ?? "Not assigned"}\nInput: {_selectedControl.Input}\nBehavior: {state.Action?.Behavior ?? "-"}"
             };
             var stack = new StackPanel();
-            stack.Children.Add(new TextBlock { Text = ContextGlyph(state.Context) + "  " + state.Context.ToUpperInvariant(), FontWeight = FontWeights.Bold, Foreground = state.Enabled ? Cyan : Muted });
-            stack.Children.Add(new TextBlock { Text = state.Enabled ? state.Action?.DisplayName ?? "Missing action" : "Not assigned", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), FontSize = 11 });
-            stack.Children.Add(new TextBlock { Text = $"Type: {state.Action?.Behavior ?? "-"}", Foreground = Muted, Margin = new Thickness(0, 8, 0, 0), FontSize = 10 });
-            stack.Children.Add(new TextBlock { Text = $"Input: {_selectedControl.Input}", Foreground = Muted, TextWrapping = TextWrapping.Wrap, FontSize = 10 });
-            stack.Children.Add(new TextBlock { Text = state.Status, Foreground = StateBrush(state), Margin = new Thickness(0, 7, 0, 0), FontSize = 9, FontWeight = FontWeights.Bold });
+            stack.Children.Add(new TextBlock { Text = ContextGlyph(state.Context) + "  " + state.Context.ToUpperInvariant(), FontWeight = FontWeights.Bold, Foreground = state.Enabled ? Cyan : Muted, FontSize = 9.5 });
+            stack.Children.Add(new TextBlock { Text = state.Enabled ? state.Action?.DisplayName ?? "Missing action" : "Not assigned", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 7, 0, 0), FontSize = 9.5, MaxHeight = 31 });
+            stack.Children.Add(new TextBlock { Text = state.Status, Foreground = StateBrush(state), Margin = new Thickness(0, 5, 0, 0), FontSize = 8.5, FontWeight = FontWeights.Bold });
             card.Child = stack;
             _stateOverview.Children.Add(card);
         }
@@ -292,14 +389,22 @@ public sealed partial class StarbindV5Window
             if (intents.Count > 1) warnings.Add(new("!", "This control performs unrelated intents across game states.", Amber));
             foreach (var state in _visibleStates.Values.Where(state => state.Enabled && state.Action is null)) warnings.Add(new("!", $"{state.Context} is enabled without an action.", Red));
             foreach (var state in _visibleStates.Values.Where(state => state.HasConflict)) warnings.Add(new("!", $"{state.Context}: this control already has {state.Existing.Count} bindings.", Amber));
-            var globalDuplicates = FindConflictGroups();
-            foreach (var conflict in globalDuplicates.Take(4)) warnings.Add(new("!", $"{conflict.Context}: {conflict.Input} is bound to {conflict.Actions.Count} actions.", Amber));
+            foreach (var conflict in FindConflictGroups().Take(4)) warnings.Add(new("!", $"{conflict.Context}: {FriendlyInputName(conflict.Input)} is bound to {conflict.Actions.Count} actions.", Amber));
             if (_pendingPlans.Values.Any(plan => plan.IsDirty) || _axisTunings.Count > 0) warnings.Add(new("•", "Unsaved changes are staged. Validate or save when ready.", Blue));
             if (warnings.Count == 0) warnings.Add(new("✓", "No critical conflicts for this control.", Green));
         }
         _warnings.ItemsSource = warnings;
         _warnings.ItemTemplate = WarningTemplate();
         _resolveAllButton.IsEnabled = FindConflictGroups().Count > 0;
+    }
+
+    private string FriendlyInputName(string input)
+    {
+        if (_profile is null) return input;
+        var instance = StarbindInput.DeviceInstance(input);
+        var device = _profile.Devices.FirstOrDefault(item => item.Instance == instance && input.StartsWith(item.InputPrefix + "_", StringComparison.OrdinalIgnoreCase));
+        if (device is null) return input;
+        return _hardware.BuildControls(device, _profile, _settings).FirstOrDefault(control => control.Input.Equals(input, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? input;
     }
 
     private IReadOnlyList<ConflictGroup> FindConflictGroups()
@@ -386,7 +491,7 @@ public sealed partial class StarbindV5Window
     };
 
     private static int ContextIndex(string context) => Array.FindIndex(ContextOrder, item => item.Equals(context, StringComparison.OrdinalIgnoreCase)) is var index && index >= 0 ? index : 99;
-    private static int KnownActionScore(StarbindAction action) => action.Description.Contains("in the", StringComparison.OrdinalIgnoreCase) ? 0 : 2;
+    private static int KnownActionScore(StarbindAction action) => action.Description.Contains("Controls ", StringComparison.OrdinalIgnoreCase) ? 0 : 2;
 
     private static string ActionExplanation(StarbindAction action)
     {
