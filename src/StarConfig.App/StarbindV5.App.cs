@@ -62,6 +62,7 @@ public sealed partial class StarbindV5Window : Window
     private readonly Dictionary<string, PlannedStateBinding> _visibleStates = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ComboBox> _statePickers = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CheckBox> _stateChecks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CheckBox> _mappingAssistantChecks = new(StringComparer.OrdinalIgnoreCase);
 
     private StarbindV5Settings _settings;
     private StarbindProfile? _profile;
@@ -113,15 +114,21 @@ public sealed partial class StarbindV5Window : Window
     private readonly Button _saveMenuButton = new();
     private readonly CheckBox _showUnassigned = new() { Content = "Show unassigned only", Foreground = Muted, VerticalAlignment = VerticalAlignment.Center };
     private readonly ComboBox _zoomPicker = new();
+    private readonly Border _mappingAssistantHost = new();
+    private readonly TextBlock _mappingAssistantBody = new();
+    private readonly StackPanel _mappingAssistantStates = new();
+    private readonly Border _mappingAssistantChooser = new();
+    private readonly StackPanel _mappingAssistantChooserRows = new();
+    private readonly Button _mappingAssistantConfirm = new();
 
     public StarbindV5Window()
     {
         _settings = _settingsStore.Load();
-        Title = "Starbind 0.6 - Star Citizen Control Mapper";
-        Width = 1720;
-        Height = 1040;
-        MinWidth = 1360;
-        MinHeight = 820;
+        Title = "Starbind 0.7 - Star Citizen Control Mapper";
+        Width = 1920;
+        Height = 1080;
+        MinWidth = 1500;
+        MinHeight = 900;
         Background = Bg;
         Foreground = Text;
         FontFamily = new FontFamily("Segoe UI");
