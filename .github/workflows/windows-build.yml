@@ -15,62 +15,59 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup .NET
+      - name: Setup .NET 8
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore
+      - name: Restore solution
         run: dotnet restore StarConfig.sln
 
-      - name: Build
+      - name: Build solution
         run: dotnet build StarConfig.sln -c Release --no-restore
 
-      - name: Publish standalone Windows x64 app
-        run: dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\StarConfig
+      - name: Run Star Citizen profile regression tests
+        run: dotnet run --project .\src\StarConfig.Smoke\StarConfig.Smoke.csproj -c Release
 
-      - name: Include quick-start file
+      - name: Publish Starbind portable application
+        run: dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\Starbind
+
+      - name: Verify portable executable
         shell: pwsh
         run: |
-          @"
-          STARCONFIG 0.3.0
-
-          Run StarConfig.exe, select a physical control, review its assignments across game states, and apply the checked mappings.
-          StarConfig can open any exported layout_*_exported.xml profile and remembers the profile for the next launch.
-          Every save creates a timestamped backup before replacing the original XML.
-          "@ | Set-Content .\artifacts\StarConfig\START-HERE.txt
+          if (-not (Test-Path '.\artifacts\Starbind\Starbind.exe')) { throw 'Starbind.exe was not produced.' }
+          Get-Item '.\artifacts\Starbind\Starbind.exe' | Format-List FullName,Length,LastWriteTime
 
       - name: Create installer payload
         shell: pwsh
         run: |
-          $payload = Join-Path $env:GITHUB_WORKSPACE 'src\StarConfig.Installer\Payload.zip'
+          $payload = '.\src\StarConfig.Installer\Payload.zip'
           if (Test-Path $payload) { Remove-Item $payload -Force }
-          Compress-Archive -Path '.\artifacts\StarConfig\*' -DestinationPath $payload -CompressionLevel Optimal
+          Compress-Archive -Path '.\artifacts\Starbind\*' -DestinationPath $payload -CompressionLevel Optimal
           if (-not (Test-Path $payload)) { throw 'Payload.zip was not produced.' }
 
-      - name: Restore installer with embedded payload
+      - name: Restore installer
         run: dotnet restore .\src\StarConfig.Installer\StarConfig.Installer.csproj
 
-      - name: Publish installer
+      - name: Publish Starbind installer
         run: dotnet publish .\src\StarConfig.Installer\StarConfig.Installer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\artifacts\Installer
 
-      - name: Verify installer
+      - name: Verify installer executable
         shell: pwsh
         run: |
-          $installer = '.\artifacts\Installer\StarConfig-Setup.exe'
-          if (-not (Test-Path $installer)) { throw 'StarConfig-Setup.exe was not produced.' }
-          Get-Item $installer | Format-List FullName,Length,LastWriteTime
+          if (-not (Test-Path '.\artifacts\Installer\Starbind-Setup.exe')) { throw 'Starbind-Setup.exe was not produced.' }
+          Get-Item '.\artifacts\Installer\Starbind-Setup.exe' | Format-List FullName,Length,LastWriteTime
 
-      - name: Upload Windows application
+      - name: Upload portable application
         uses: actions/upload-artifact@v4
         with:
-          name: StarConfig-v0.3.0-portable
-          path: artifacts/StarConfig
+          name: Starbind-v0.4.0-portable
+          path: artifacts/Starbind
           if-no-files-found: error
 
-      - name: Upload Windows installer
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: StarConfig-Setup-v0.3.0
-          path: artifacts/Installer/StarConfig-Setup.exe
+          name: Starbind-Setup-v0.4.0
+          path: artifacts/Installer/Starbind-Setup.exe
           if-no-files-found: error
