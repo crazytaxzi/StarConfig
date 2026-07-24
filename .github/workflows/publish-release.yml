@@ -1,17 +1,17 @@
-name: Publish StarConfig Release
+name: Publish Starbind Release
 
 on:
   push:
     branches: [ main ]
     paths:
-      - '.release-trigger/v0.3.0.txt'
+      - '.release-trigger/v0.4.0.txt'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: starconfig-release-v0.3.0
+  group: starbind-release-v0.4.0
   cancel-in-progress: false
 
 jobs:
@@ -27,19 +27,23 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore and build application
+      - name: Restore and test
         run: |
-          dotnet restore .\src\StarConfig.App\StarConfig.App.csproj
-          dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\dist\StarConfig
+          dotnet restore StarConfig.sln
+          dotnet build StarConfig.sln -c Release --no-restore
+          dotnet run --project .\src\StarConfig.Smoke\StarConfig.Smoke.csproj -c Release
+
+      - name: Publish Starbind application
+        run: dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\dist\Starbind
 
       - name: Create installer payload
         shell: pwsh
         run: |
-          $app = '.\dist\StarConfig\StarConfig.exe'
-          if (-not (Test-Path $app)) { throw 'StarConfig.exe was not produced.' }
+          $app = '.\dist\Starbind\Starbind.exe'
+          if (-not (Test-Path $app)) { throw 'Starbind.exe was not produced.' }
           $payload = '.\src\StarConfig.Installer\Payload.zip'
           if (Test-Path $payload) { Remove-Item $payload -Force }
-          Compress-Archive -Path '.\dist\StarConfig\*' -DestinationPath $payload -CompressionLevel Optimal
+          Compress-Archive -Path '.\dist\Starbind\*' -DestinationPath $payload -CompressionLevel Optimal
           if (-not (Test-Path $payload)) { throw 'Payload.zip was not produced.' }
 
       - name: Build installer
@@ -47,29 +51,29 @@ jobs:
           dotnet restore .\src\StarConfig.Installer\StarConfig.Installer.csproj
           dotnet publish .\src\StarConfig.Installer\StarConfig.Installer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\dist\Installer
 
-      - name: Verify installer
+      - name: Verify and hash installer
         shell: pwsh
         run: |
-          $installer = '.\dist\Installer\StarConfig-Setup.exe'
-          if (-not (Test-Path $installer)) { throw 'StarConfig-Setup.exe was not produced.' }
+          $installer = '.\dist\Installer\Starbind-Setup.exe'
+          if (-not (Test-Path $installer)) { throw 'Starbind-Setup.exe was not produced.' }
           $hash = (Get-FileHash $installer -Algorithm SHA256).Hash
-          "SHA256: $hash" | Set-Content '.\dist\Installer\StarConfig-Setup.exe.sha256.txt'
+          "SHA256  $hash  Starbind-Setup.exe" | Set-Content '.\dist\Installer\Starbind-Setup.exe.sha256.txt'
           Get-Item $installer | Format-List FullName,Length,LastWriteTime
 
-      - name: Upload verified installer artifact
+      - name: Upload verified release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StarConfig-Setup-v0.3.0
+          name: Starbind-Setup-v0.4.0
           path: |
-            dist/Installer/StarConfig-Setup.exe
-            dist/Installer/StarConfig-Setup.exe.sha256.txt
+            dist/Installer/Starbind-Setup.exe
+            dist/Installer/Starbind-Setup.exe.sha256.txt
           if-no-files-found: error
 
-      - name: Publish StarConfig v0.3.0 release
+      - name: Publish Starbind v0.4.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.3.0
-          name: StarConfig v0.3.0
+          tag_name: v0.4.0
+          name: Starbind v0.4.0
           target_commitish: main
           draft: false
           prerelease: false
@@ -77,17 +81,19 @@ jobs:
           fail_on_unmatched_files: true
           overwrite_files: true
           files: |
-            dist/Installer/StarConfig-Setup.exe
-            dist/Installer/StarConfig-Setup.exe.sha256.txt
+            dist/Installer/Starbind-Setup.exe
+            dist/Installer/Starbind-Setup.exe.sha256.txt
           body: |
-            StarConfig v0.3.0 rebuilds the application around the actual control-mapping job.
+            Starbind v0.4.0 replaces the nonfunctional prototype with the control-first mapper represented by the approved design.
 
-            - Select a physical keyboard, mouse, joystick button, hat or axis first
-            - See that control's existing assignments across Flight, Vehicle, On Foot, EVA, Turret, Mining and Salvage
-            - Choose or remove each state assignment in one workspace
-            - Receive explicit same-intent suggestions without merging toggle, cycle, hold or axis behaviors
-            - Browse actions with human-readable explanations and semantic peers
-            - Detect duplicate and unrelated bindings before saving
-            - Open exported layout_*_exported.xml profiles directly and remember the selected profile
-            - Validate and back up profiles before safe XML replacement
-            - Install as a self-contained Windows application with no separate .NET runtime required
+            - Reads exact joystick product names and instances from the Star Citizen profile instead of displaying generic WinMM driver names
+            - Preserves multiple rebind elements and attributes such as multiTap
+            - Correctly treats placeholder inputs such as `js2_ ` and `kb1_ ` as unbound
+            - Selects a physical control first and shows every assignment that uses it across game states
+            - Suggests semantically compatible actions without merging toggle, cycle, hold, direct, or axis behaviors
+            - Provides explicit keep/remove confirmation before changing cross-state bindings
+            - Uses the approved joystick artwork and callout-centered layout
+            - Reads and writes joystick deadzones from deviceoptions
+            - Creates a timestamped backup and validates the XML before replacement
+            - Migrates the old StarConfig installation to the renamed Starbind application
+            - Includes automated profile regression tests based on real Star Citizen export structure
