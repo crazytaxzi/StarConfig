@@ -127,6 +127,8 @@ public sealed partial class StarbindV5Window : Window
         FontFamily = new FontFamily("Segoe UI");
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         InstallControlStyles();
+        Resources[typeof(ComboBox)] = Resources["StarbindCombo"];
+        Resources[typeof(ComboBoxItem)] = Resources["StarbindComboItem"];
         Content = BuildLayout();
 
         PreviewKeyDown += CaptureKeyboard;
