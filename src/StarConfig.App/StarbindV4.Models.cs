@@ -59,7 +59,7 @@ public sealed record StarbindAction(
     IReadOnlyDictionary<string, string> Attributes)
 {
     public string Identity => $"{ActionMap}|{ActionOrdinal}|{ActionName}|{RebindOrdinal}";
-    public string DisplayName => StarbindText.Humanize(ActionName);
+    public string DisplayName => StarbindActionNames.Friendly(Context, Intent, Behavior, ActionName);
     public bool IsBound => !StarbindInput.IsUnbound(Input);
 }
 
@@ -132,6 +132,77 @@ public sealed class StateAssignment : INotifyPropertyChanged
 }
 
 public sealed record StarbindWarning(string Icon, string Text, Brush Color);
+
+public static class StarbindActionNames
+{
+    private static readonly IReadOnlyDictionary<string, string> Exact = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["v_strafe_longitudinal"] = "Move Forward / Backward",
+        ["v_strafe_lateral"] = "Strafe Left / Right",
+        ["v_strafe_vertical"] = "Strafe Up / Down",
+        ["v_pitch"] = "Pitch Up / Down",
+        ["v_yaw"] = "Yaw Left / Right",
+        ["v_roll"] = "Roll Left / Right",
+        ["vehicle_throttle_abs"] = "Throttle - Forward / Backward",
+        ["vehicle_steer"] = "Steering - Left / Right",
+        ["moveforward"] = "Move Forward / Backward",
+        ["moveback"] = "Move Backward",
+        ["moveleft"] = "Move Left",
+        ["moveright"] = "Move Right",
+        ["jump"] = "Jump",
+        ["sprint"] = "Sprint",
+        ["crouch"] = "Crouch",
+        ["reload"] = "Reload",
+        ["v_afterburner"] = "Boost / Afterburner",
+        ["v_weapon_fire_group_1"] = "Fire Weapon Group 1",
+        ["v_weapon_fire_group_2"] = "Fire Weapon Group 2",
+        ["v_missile_mode_toggle"] = "Toggle Missile Operator Mode",
+        ["v_target_cycle_friendly_fwd"] = "Cycle Friendly Targets",
+        ["v_target_cycle_hostile_fwd"] = "Cycle Hostile Targets",
+        ["v_target_toggle_lock_index_1"] = "Lock / Unlock Target",
+        ["v_operator_mode_cycle"] = "Cycle Operator Mode",
+        ["v_master_mode_cycle"] = "Cycle Master Mode",
+        ["v_atc_loading_area_request"] = "Request Landing / Loading Area",
+        ["v_autoland"] = "Automatic Landing",
+        ["v_ifcs_toggle_cruise_control"] = "Toggle Cruise Control",
+        ["turret_elevation"] = "Turret Elevation",
+        ["turret_azimuth"] = "Turret Left / Right",
+        ["v_mining_throttle"] = "Mining Laser Power",
+        ["v_mining_laser_fire"] = "Activate Mining Laser",
+        ["v_salvage_beam_axis"] = "Salvage Beam Strength",
+        ["v_salvage_beam_toggle"] = "Toggle Salvage Beam",
+        ["foip_pushtotalk"] = "Push to Talk",
+        ["v_speed_limiter_abs"] = "Speed Limiter",
+        ["v_speed_limiter_rel"] = "Adjust Speed Limiter",
+        ["v_landing_gear_toggle"] = "Toggle Landing Gear",
+        ["v_toggle_decoupled_mode"] = "Toggle Coupled / Decoupled Mode",
+        ["v_quantum_mode_toggle"] = "Toggle Quantum Operator Mode",
+        ["v_quantum_drive_engage"] = "Engage Quantum Drive",
+        ["v_scan_trigger_scan"] = "Start Scan",
+        ["v_invoke_ping"] = "Radar Ping"
+    };
+
+    public static string Friendly(string context, string intent, string behavior, string actionName)
+    {
+        if (Exact.TryGetValue(actionName, out var exact)) return exact;
+        if (intent.Equals("Move Forward / Backward", StringComparison.OrdinalIgnoreCase))
+            return context switch { "Vehicle" => "Throttle - Forward / Backward", _ => "Move Forward / Backward" };
+        if (intent.Equals("Move Left / Right", StringComparison.OrdinalIgnoreCase))
+            return context switch { "Flight" or "EVA" => "Strafe Left / Right", "Vehicle" => "Steering - Left / Right", _ => "Move Left / Right" };
+        if (intent.Equals("Move Up / Down", StringComparison.OrdinalIgnoreCase))
+            return context is "Flight" or "EVA" ? "Strafe Up / Down" : "Move Up / Down";
+        if (intent.Equals("Boost / Sprint", StringComparison.OrdinalIgnoreCase))
+            return context switch { "On Foot" => "Sprint", "Flight" => "Boost / Afterburner", _ => "Boost" };
+        if (intent.Equals("Operator Mode", StringComparison.OrdinalIgnoreCase)) return behavior == "Cycle" ? "Cycle Operator Mode" : behavior == "Toggle" ? "Toggle Operator Mode" : "Operator Mode";
+        if (intent.Equals("Master Mode", StringComparison.OrdinalIgnoreCase)) return behavior == "Cycle" ? "Cycle Master Mode" : behavior == "Toggle" ? "Toggle Master Mode" : "Master Mode";
+        if (intent.Equals("Primary Fire", StringComparison.OrdinalIgnoreCase))
+            return context switch { "Mining" => "Activate Mining Laser", "Salvage" => "Activate Salvage Tool", "Flight" => "Fire Weapon Group 1", _ => "Primary Fire" };
+        if (intent.Equals("Secondary Fire", StringComparison.OrdinalIgnoreCase))
+            return context == "Flight" ? "Fire Weapon Group 2" : "Secondary Fire";
+        if (!string.IsNullOrWhiteSpace(intent) && intent is not "Targeting" and not "Ship Systems" and not "Vehicle Systems" and not "Character Systems" and not "Systems") return intent;
+        return StarbindText.Humanize(actionName);
+    }
+}
 
 public static class StarbindInput
 {
