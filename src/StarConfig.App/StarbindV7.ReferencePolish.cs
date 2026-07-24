@@ -12,6 +12,7 @@ public sealed partial class StarbindV5Window
         Dispatcher.BeginInvoke(() =>
         {
             ApplyReferenceSizing();
+            ApplyToolRowSpacing();
             SelectMostAssignedControl();
             WidenJoystickArtwork();
         }, DispatcherPriority.Loaded);
@@ -40,6 +41,25 @@ public sealed partial class StarbindV5Window
             bottom.ColumnDefinitions[1].Width = new GridLength(1, GridUnitType.Star);
             bottom.ColumnDefinitions[2].Width = new GridLength(465);
         }
+    }
+
+    private void ApplyToolRowSpacing()
+    {
+        _view3DButton.FontSize = 9;
+        _view3DButton.Padding = new Thickness(8, 6, 8, 6);
+        _testButton.FontSize = 9;
+        _testButton.Padding = new Thickness(8, 6, 8, 6);
+        _showUnassigned.Content = "Show Unassigned Only";
+        _showUnassigned.FontSize = 8.5;
+        _showUnassigned.Margin = new Thickness(7, 0, 14, 0);
+        _zoomPicker.Width = 70;
+
+        ScrollViewer.SetHorizontalScrollBarVisibility(_controlTree, ScrollBarVisibility.Disabled);
+        ScrollViewer.SetVerticalScrollBarVisibility(_controlTree, ScrollBarVisibility.Auto);
+        ScrollViewer.SetHorizontalScrollBarVisibility(_actionTree, ScrollBarVisibility.Disabled);
+        ScrollViewer.SetVerticalScrollBarVisibility(_actionTree, ScrollBarVisibility.Auto);
+        ScrollViewer.SetHorizontalScrollBarVisibility(_warnings, ScrollBarVisibility.Disabled);
+        ScrollViewer.SetVerticalScrollBarVisibility(_warnings, ScrollBarVisibility.Auto);
     }
 
     private void SelectMostAssignedControl()
