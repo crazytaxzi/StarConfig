@@ -9,7 +9,7 @@ namespace StarConfig.Installer;
 internal static class Program
 {
     private const string AppName = "Starbind";
-    private const string AppVersion = "0.4.0";
+    private const string AppVersion = "0.5.0";
     private static readonly string InstallDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", AppName);
     private static readonly string LegacyDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "StarConfig");
 

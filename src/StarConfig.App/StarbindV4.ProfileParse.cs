@@ -72,8 +72,9 @@ public sealed partial class StarbindProfileService
             {
                 var axis = (string?)option.Attribute("input") ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(axis)) continue;
-                var deadzone = double.TryParse((string?)option.Attribute("deadzone"), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
-                result.Add(new StarbindDeviceAxisOption(product, device?.Instance ?? 1, axis, Math.Clamp(deadzone, 0, 0.95), false));
+                var deadzone = double.TryParse((string?)option.Attribute("deadzone"), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDeadzone) ? parsedDeadzone : 0;
+                var exponent = double.TryParse((string?)option.Attribute("exponent"), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedExponent) ? parsedExponent : 1.0;
+                result.Add(new StarbindDeviceAxisOption(product, device?.Instance ?? 1, axis, Math.Clamp(deadzone, 0, 0.95), false, Math.Clamp(exponent, 0.1, 4.0)));
             }
         }
         return result;
