@@ -11,12 +11,14 @@ public sealed partial class StarbindV5Window
         Dispatcher.BeginInvoke(() =>
         {
             InstallV8Corrections();
+            InstallDeviceNavigationFix();
             ApplyReferenceSizing();
             ApplyToolRowSpacing();
             SelectMostAssignedControl();
             BuildCorrectedKeyboardControlTree();
             RefreshCorrectedDeviceArtwork();
             RefreshCorrectedDeviceThumbnails();
+            BringSelectedDeviceCardIntoView();
         }, DispatcherPriority.Loaded);
     }
 
