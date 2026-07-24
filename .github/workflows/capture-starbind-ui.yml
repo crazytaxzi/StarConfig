@@ -1,9 +1,10 @@
-name: Capture Starbind UI
+name: Capture Starbind 0.6 UI
 
 on:
   pull_request:
     branches: [ main ]
     paths:
+      - 'src/StarConfig.App/**'
       - '.ui-capture/**'
       - '.github/workflows/capture-starbind-ui.yml'
   workflow_dispatch:
@@ -13,10 +14,8 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout exact v0.5.0 release source
+      - name: Checkout current clarity rebuild
         uses: actions/checkout@v5
-        with:
-          ref: v0.5.0
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v5
@@ -38,12 +37,8 @@ jobs:
           @'
           <ActionMaps>
             <ActionProfiles version="1" optionsVersion="2" rebindVersion="2" profileName="HOSAS Default">
-              <deviceoptions name="VKBsim Gladiator EVO R {0200231D-0000-0000-0000-504944564944}">
-                <option input="z" deadzone="0.050000" exponent="1.350000" curve="Gentle" />
-              </deviceoptions>
-              <deviceoptions name="VKBsim Gladiator EVO L {0201231D-0000-0000-0000-504944564944}">
-                <option input="x" deadzone="0.020000" exponent="1.000000" curve="Linear" />
-              </deviceoptions>
+              <deviceoptions name="VKBsim Gladiator EVO R {0200231D-0000-0000-0000-504944564944}"><option input="z" deadzone="0.050000" exponent="1.350000" curve="Gentle" /></deviceoptions>
+              <deviceoptions name="VKBsim Gladiator EVO L {0201231D-0000-0000-0000-504944564944}"><option input="x" deadzone="0.020000" exponent="1.000000" curve="Linear" /></deviceoptions>
               <options type="keyboard" instance="1" Product="Keyboard" />
               <options type="mouse" instance="1" Product="Mouse" />
               <options type="joystick" instance="1" Product="VKBsim Gladiator EVO R {0200231D-0000-0000-0000-504944564944}" />
@@ -75,43 +70,19 @@ jobs:
                 <action name="v_master_mode_cycle"><rebind input="js1_button9" /></action>
                 <action name="v_atc_loading_area_request"><rebind input="js1_button7" multiTap="2" /></action>
               </actionmap>
-              <actionmap name="vehicle_movement">
-                <action name="vehicle_throttle_abs"><rebind input="js1_z" /></action>
-                <action name="vehicle_steer"><rebind input="js4_x" /></action>
-              </actionmap>
-              <actionmap name="player">
-                <action name="moveforward"><rebind input="js1_z" /></action>
-                <action name="moveleft"><rebind input="js2_x" /></action>
-                <action name="jump"><rebind input="js2_button2" /></action>
-                <action name="sprint"><rebind input="js1_button5" /></action>
-                <action name="crouch"><rebind input="js2_button5" /></action>
-                <action name="reload"><rebind input="js2_button6" /></action>
-              </actionmap>
-              <actionmap name="turret_movement">
-                <action name="turret_elevation"><rebind input="js1_z" /></action>
-                <action name="turret_azimuth"><rebind input="js1_x" /></action>
-              </actionmap>
-              <actionmap name="spaceship_mining">
-                <action name="v_mining_throttle"><rebind input="js3_z" /></action>
-                <action name="v_mining_laser_fire"><rebind input="js3_button1" /></action>
-              </actionmap>
-              <actionmap name="spaceship_salvage">
-                <action name="v_salvage_beam_axis"><rebind input="js3_slider1" /></action>
-                <action name="v_salvage_beam_toggle"><rebind input="js3_button2" /></action>
-              </actionmap>
+              <actionmap name="vehicle_movement"><action name="vehicle_throttle_abs"><rebind input="js1_z" /></action><action name="vehicle_steer"><rebind input="js4_x" /></action></actionmap>
+              <actionmap name="player"><action name="moveforward"><rebind input="js1_z" /></action><action name="moveleft"><rebind input="js2_x" /></action><action name="jump"><rebind input="js2_button2" /></action><action name="sprint"><rebind input="js1_button5" /></action><action name="crouch"><rebind input="js2_button5" /></action><action name="reload"><rebind input="js2_button6" /></action></actionmap>
+              <actionmap name="turret_movement"><action name="turret_elevation"><rebind input="js1_z" /></action><action name="turret_azimuth"><rebind input="js1_x" /></action></actionmap>
+              <actionmap name="spaceship_mining"><action name="v_mining_throttle"><rebind input="js3_z" /></action><action name="v_mining_laser_fire"><rebind input="js3_button1" /></action></actionmap>
+              <actionmap name="spaceship_salvage"><action name="v_salvage_beam_axis"><rebind input="js3_slider1" /></action><action name="v_salvage_beam_toggle"><rebind input="js3_button2" /></action></actionmap>
             </ActionProfiles>
           </ActionMaps>
           '@ | Set-Content -Path $profile -Encoding utf8
 
           $settingsDir = Join-Path $env:LOCALAPPDATA 'Starbind'
           New-Item -ItemType Directory -Force -Path $settingsDir | Out-Null
-          @{
-            LastProfile = $profile
-            LauncherPath = $null
-            ProfileFolders = @($profileDir)
-            DeviceRoleOverrides = @{}
-            ConfirmBeforeWrite = $true
-          } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $settingsDir 'settings-v5.json') -Encoding utf8
+          @{ LastProfile = $profile; LauncherPath = $null; ProfileFolders = @($profileDir); DeviceRoleOverrides = @{}; ConfirmBeforeWrite = $true } |
+            ConvertTo-Json -Depth 5 | Set-Content (Join-Path $settingsDir 'settings-v5.json') -Encoding utf8
 
       - name: Launch and capture actual application window
         shell: pwsh
@@ -129,22 +100,16 @@ jobs:
             [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int width, int height, bool repaint);
           }
           '@
-
           $app = Resolve-Path '.\capture\app\Starbind.exe'
           $process = Start-Process $app -PassThru
           $deadline = (Get-Date).AddSeconds(30)
-          do {
-            Start-Sleep -Milliseconds 250
-            $process.Refresh()
-          } while ($process.MainWindowHandle -eq 0 -and (Get-Date) -lt $deadline)
+          do { Start-Sleep -Milliseconds 250; $process.Refresh() } while ($process.MainWindowHandle -eq 0 -and (Get-Date) -lt $deadline)
           if ($process.MainWindowHandle -eq 0) { throw 'Starbind did not create a visible main window.' }
-
           [WindowCaptureNative]::ShowWindow($process.MainWindowHandle, 1) | Out-Null
           [WindowCaptureNative]::MoveWindow($process.MainWindowHandle, 0, 0, 1720, 1040, $true) | Out-Null
           [WindowCaptureNative]::SetForegroundWindow($process.MainWindowHandle) | Out-Null
           Start-Sleep -Seconds 5
           $process.Refresh()
-
           $rect = New-Object WindowCaptureNative+RECT
           if (-not [WindowCaptureNative]::GetWindowRect($process.MainWindowHandle, [ref]$rect)) { throw 'Could not read the Starbind window rectangle.' }
           $width = [Math]::Max(1, $rect.Right - $rect.Left)
@@ -152,23 +117,17 @@ jobs:
           $bitmap = New-Object System.Drawing.Bitmap $width, $height, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
           $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
           $hdc = $graphics.GetHdc()
-          try {
-            $printed = [WindowCaptureNative]::PrintWindow($process.MainWindowHandle, $hdc, 2)
-          } finally {
-            $graphics.ReleaseHdc($hdc)
-            $graphics.Dispose()
-          }
+          try { $printed = [WindowCaptureNative]::PrintWindow($process.MainWindowHandle, $hdc, 2) } finally { $graphics.ReleaseHdc($hdc); $graphics.Dispose() }
           if (-not $printed) { throw 'Windows PrintWindow could not capture Starbind.' }
           New-Item -ItemType Directory -Force -Path '.\capture\screenshot' | Out-Null
-          $file = Join-Path (Resolve-Path '.\capture\screenshot') 'Starbind-v0.5.0-actual-window.png'
+          $file = Join-Path (Resolve-Path '.\capture\screenshot') 'Starbind-v0.6.0-actual-window.png'
           $bitmap.Save($file, [System.Drawing.Imaging.ImageFormat]::Png)
           $bitmap.Dispose()
-          Get-Item $file | Format-List FullName,Length,LastWriteTime
           Stop-Process -Id $process.Id -Force
 
       - name: Upload actual UI screenshot
         uses: actions/upload-artifact@v4
         with:
-          name: Starbind-v0.5.0-actual-ui-screenshot
-          path: capture/screenshot/Starbind-v0.5.0-actual-window.png
+          name: Starbind-v0.6.0-actual-ui-screenshot
+          path: capture/screenshot/Starbind-v0.6.0-actual-window.png
           if-no-files-found: error
