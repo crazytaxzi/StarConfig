@@ -55,7 +55,7 @@ public sealed partial class StarbindWindow
         Grid.SetColumn(channel, 1);
         grid.Children.Add(channel);
 
-        var profile = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0) };
+        var profile = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) };
         profile.Children.Add(new TextBlock { Text = "Active Profile:", Foreground = Muted, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
         StyleCombo(_profilePicker);
         _profilePicker.MinWidth = 300;
@@ -81,7 +81,7 @@ public sealed partial class StarbindWindow
 
     private UIElement BuildDeviceBar()
     {
-        var shell = new Border { Background = Bg, Padding = new Thickness(14, 10) };
+        var shell = new Border { Background = Bg, Padding = new Thickness(14, 10, 14, 10) };
         shell.Child = new ScrollViewer { Content = _deviceCards, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled };
         return shell;
     }
@@ -116,7 +116,7 @@ public sealed partial class StarbindWindow
         visualGrid.RowDefinitions.Add(new RowDefinition());
         visualGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(42) });
         visual.Child = visualGrid;
-        var visualHeader = new Grid { Margin = new Thickness(12, 0) };
+        var visualHeader = new Grid { Margin = new Thickness(12, 0, 12, 0) };
         visualHeader.ColumnDefinitions.Add(new ColumnDefinition());
         visualHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var deviceWords = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
@@ -134,7 +134,7 @@ public sealed partial class StarbindWindow
         _deviceCanvasHost.Background = Field;
         Grid.SetRow(_deviceCanvasHost, 1);
         visualGrid.Children.Add(_deviceCanvasHost);
-        var visualTools = new Grid { Margin = new Thickness(10, 6) };
+        var visualTools = new Grid { Margin = new Thickness(10, 6, 10, 6) };
         visualTools.ColumnDefinitions.Add(new ColumnDefinition());
         visualTools.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         visualTools.Children.Add(_showUnassigned);
@@ -310,7 +310,7 @@ public sealed partial class StarbindWindow
 
     private UIElement BuildFooter()
     {
-        var footer = new Border { Background = Rail, BorderBrush = Border, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(14, 0) };
+        var footer = new Border { Background = Rail, BorderBrush = Border, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(14, 0, 14, 0) };
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -130,7 +131,7 @@ public sealed partial class StarbindWindow
 
     private static StackPanel HeaderStat(string label, TextBlock value)
     {
-        var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0) };
+        var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) };
         stack.Children.Add(new TextBlock { Text = label, Foreground = Faint, FontSize = 8 });
         value.FontWeight = FontWeights.SemiBold;
         value.FontSize = 11;
