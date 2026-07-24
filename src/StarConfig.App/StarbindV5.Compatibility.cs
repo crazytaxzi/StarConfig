@@ -1,5 +1,6 @@
 global using System.Windows.Input;
 
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -13,8 +14,20 @@ internal sealed class ShapeEllipse : Border
         set => Background = value;
     }
 
+    public Brush? Stroke
+    {
+        get => BorderBrush;
+        set => BorderBrush = value;
+    }
+
+    public double StrokeThickness
+    {
+        get => BorderThickness.Left;
+        set => BorderThickness = new Thickness(value);
+    }
+
     public ShapeEllipse()
     {
-        CornerRadius = new System.Windows.CornerRadius(999);
+        CornerRadius = new CornerRadius(999);
     }
 }
