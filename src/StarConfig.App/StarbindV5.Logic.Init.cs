@@ -94,28 +94,36 @@ public sealed partial class StarbindV5Window
             var selected = _selectedDevice is not null && SameDevice(_selectedDevice, device);
             var card = new Button
             {
-                Width = template.Family is HardwareFamily.Keyboard or HardwareFamily.Mouse ? 178 : 235,
-                Height = 64,
+                Width = template.Family is HardwareFamily.Keyboard or HardwareFamily.Mouse ? 182 : 238,
+                Height = 60,
                 Margin = new Thickness(0, 0, 8, 0),
                 Padding = new Thickness(8),
                 Background = selected ? BlueDim : Panel2,
-                BorderBrush = selected ? Blue : Border,
+                BorderBrush = selected ? Cyan : Border,
+                BorderThickness = new Thickness(selected ? 2 : 1),
                 Foreground = Text,
                 Cursor = Cursors.Hand,
                 Tag = device,
-                HorizontalContentAlignment = HorizontalAlignment.Stretch
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                ToolTip = device.IsConnected ? "Detected live by Windows." : "Present in the loaded Star Citizen profile but not detected live by Windows."
             };
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(54) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
             grid.ColumnDefinitions.Add(new ColumnDefinition());
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
             grid.Children.Add(BuildDeviceThumbnail(template));
             var words = new StackPanel { Margin = new Thickness(7, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             words.Children.Add(new TextBlock { Text = device.ProductName, FontSize = 11, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
-            words.Children.Add(new TextBlock { Text = $"{device.SlotLabel}  •  {template.Family}", Foreground = Muted, FontSize = 10 });
+            words.Children.Add(new TextBlock
+            {
+                Text = $"{device.SlotLabel}  •  {template.Family}  •  {(device.IsConnected ? "LIVE" : "PROFILE ONLY")}",
+                Foreground = device.IsConnected ? Muted : Amber,
+                FontSize = 9.5,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
             Grid.SetColumn(words, 1);
             grid.Children.Add(words);
-            var dot = new ShapeEllipse { Width = 8, Height = 8, Fill = device.IsConnected ? Green : Amber, VerticalAlignment = VerticalAlignment.Center };
+            var dot = new ShapeEllipse { Width = 8, Height = 8, Fill = device.IsConnected ? Green : Amber, VerticalAlignment = VerticalAlignment.Center, ToolTip = device.IsConnected ? "Live device" : "Profile-only device" };
             Grid.SetColumn(dot, 2);
             grid.Children.Add(dot);
             card.Content = grid;
@@ -127,7 +135,7 @@ public sealed partial class StarbindV5Window
         {
             Content = "+\nAdd Device",
             Width = 120,
-            Height = 64,
+            Height = 60,
             Background = Panel2,
             Foreground = Muted,
             BorderBrush = Border,
@@ -135,7 +143,10 @@ public sealed partial class StarbindV5Window
         };
         add.Click += OpenDeviceManager;
         _deviceCards.Children.Add(add);
-        _deviceCountText.Text = $"{devices.Count(device => device.IsConnected)} CONNECTED";
+        var live = devices.Count(device => device.IsConnected);
+        var profileOnly = devices.Count - live;
+        _deviceCountText.Text = profileOnly > 0 ? $"{live} LIVE  •  {profileOnly} PROFILE" : $"{live} LIVE";
+        _deviceCountText.Foreground = profileOnly > 0 ? Amber : Green;
     }
 
     private UIElement BuildDeviceThumbnail(HardwareTemplate template)
@@ -144,8 +155,8 @@ public sealed partial class StarbindV5Window
         {
             return new Border
             {
-                Width = 48,
-                Height = 48,
+                Width = 46,
+                Height = 46,
                 Background = Field,
                 BorderBrush = Border,
                 BorderThickness = new Thickness(1),
@@ -153,7 +164,7 @@ public sealed partial class StarbindV5Window
                 Child = new Image { Source = StarbindArtwork.LoadJoystick(), Stretch = Stretch.Uniform, Margin = new Thickness(2) }
             };
         }
-        return DeviceArtworkFactory.BuildThumbnail(template.Family, 48, 48, Field, Cyan, Muted);
+        return DeviceArtworkFactory.BuildThumbnail(template.Family, 46, 46, Field, Cyan, Muted);
     }
 
     private void BuildDevicePicker()
@@ -192,15 +203,13 @@ public sealed partial class StarbindV5Window
         _selectedDevice = device;
         _selectedTemplate = _hardware.Resolve(device, _settings);
         _suppressUi = true;
-        try
-        {
-            _devicePicker.SelectedItem = CurrentDevices().FirstOrDefault(item => SameDevice(item, device));
-        }
+        try { _devicePicker.SelectedItem = CurrentDevices().FirstOrDefault(item => SameDevice(item, device)); }
         finally { _suppressUi = false; }
         BuildDeviceCards();
         BuildControlTree();
         _deviceTitle.Text = $"{device.ProductName.ToUpperInvariant()} ({device.SlotLabel})";
-        _deviceSubtitle.Text = $"{_selectedTemplate.DisplayName}  •  {device.Buttons} buttons  •  {device.Axes} axes  •  profile instance {device.Instance}";
+        _deviceSubtitle.Text = $"{_selectedTemplate.DisplayName}  •  {device.Buttons} buttons  •  {device.Axes} axes  •  {(device.IsConnected ? "LIVE DEVICE" : "PROFILE ONLY")}";
+        _deviceSubtitle.Foreground = device.IsConnected ? Muted : Amber;
         BuildDeviceVisual();
         var first = _hardware.BuildControls(device, _profile, _settings).FirstOrDefault(control => CurrentAssignments(control).Any())
             ?? _hardware.BuildControls(device, _profile, _settings).FirstOrDefault();
@@ -220,11 +229,18 @@ public sealed partial class StarbindV5Window
             foreach (var control in group.OrderBy(control => NaturalOrder(control.Input)))
             {
                 var count = EffectiveAssignments(control).Count();
-                var header = new DockPanel();
-                var badge = new TextBlock { Text = count > 0 ? count.ToString(CultureInfo.InvariantCulture) : string.Empty, Foreground = count > 0 ? Green : Faint, Margin = new Thickness(8, 0, 0, 0) };
+                var header = new DockPanel { LastChildFill = true };
+                var badge = new TextBlock
+                {
+                    Text = count > 0 ? $"{count} bind{(count == 1 ? string.Empty : "s")}" : string.Empty,
+                    Foreground = count > 0 ? Green : Faint,
+                    FontSize = 9,
+                    Margin = new Thickness(8, 0, 0, 0),
+                    ToolTip = count > 0 ? $"{count} current assignment{(count == 1 ? string.Empty : "s")}" : "Unassigned"
+                };
                 DockPanel.SetDock(badge, Dock.Right);
                 header.Children.Add(badge);
-                header.Children.Add(new TextBlock { Text = control.DisplayName, Foreground = Text });
+                header.Children.Add(new TextBlock { Text = control.DisplayName, Foreground = Text, TextTrimming = TextTrimming.CharacterEllipsis });
                 parent.Items.Add(new TreeViewItem { Header = header, Tag = control, Foreground = Text, Padding = new Thickness(3) });
             }
             parent.IsExpanded = group.Key is "Axes" or "Triggers" or "Buttons";
@@ -255,7 +271,7 @@ public sealed partial class StarbindV5Window
     {
         _selectedControl = control;
         _selectedControlName.Text = control.DisplayName;
-        _selectedControlInput.Text = $"Physical: {control.Input}";
+        _selectedControlInput.Text = $"Physical input: {control.Input}";
         _selectedControlType.Text = control.Kind.ToString();
         _selectedControlAssignmentCount.Text = EffectiveAssignments(control).Count().ToString(CultureInfo.InvariantCulture);
         LoadAxisSettings(control);
@@ -279,10 +295,10 @@ public sealed partial class StarbindV5Window
             _suppressUi = true;
             _primaryActionPicker.SelectedItem = null;
             _suppressUi = false;
-            _actionDescription.Text = "This physical control is currently unassigned. Choose an action or select one in the action browser.";
+            _actionDescription.Text = "This physical control is unassigned. Choose a primary action or select one in the action browser.";
             _similarActions.Children.Clear();
         }
-        SetStatus($"Selected {control.DisplayName}. Existing assignments, compatible states and conflicts are visible.");
+        SetStatus($"Selected {control.DisplayName}. Review its state assignments, then save when ready.");
     }
 
     private IEnumerable<StarbindAction> CurrentAssignments(StarbindControl control)
