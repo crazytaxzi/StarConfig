@@ -18,12 +18,19 @@ var xml = """
    <action name="v_operator_mode_cycle"><rebind input="js1_button7"/></action>
    <action name="v_master_mode_cycle"><rebind input="js1_button8"/></action>
   </actionmap>
+  <actionmap name="vehicle_movement">
+   <action name="vehicle_throttle_abs"><rebind input="js2_y"/></action>
+   <action name="vehicle_steer"><rebind input="js1_x"/></action>
+  </actionmap>
   <actionmap name="spaceship_mining">
    <action name="v_mining_throttle"><rebind input="js2_z"/></action>
   </actionmap>
   <actionmap name="player">
    <action name="jump"><rebind input="js2_button2"/></action>
    <action name="moveforward"><rebind input="js2_ "/></action>
+  </actionmap>
+  <actionmap name="turret_movement">
+   <action name="turret_elevation"><rebind input="js2_y"/></action>
   </actionmap>
   <actionmap name="player_input_optical_tracking">
    <action name="foip_pushtotalk"><rebind input="kb1_lshift+np_add"/><rebind input="js2_button21"/></action>
@@ -50,10 +57,18 @@ try
     Require(profile.Actions.Single(x => x.ActionName == "v_mining_throttle").Context == "Mining", "Mining context classification failed.");
     Require(profile.Actions.Single(x => x.ActionName == "jump").Context == "On Foot", "On Foot context classification failed.");
     Require(profile.Actions.Single(x => x.ActionName == "v_strafe_longitudinal").Intent == "Move Forward / Backward", "Movement intent classification failed.");
+    Require(profile.Actions.Single(x => x.ActionName == "v_strafe_longitudinal").DisplayName == "Move Forward / Backward", "Friendly ship movement name was not used.");
+    Require(profile.Actions.Single(x => x.ActionName == "vehicle_throttle_abs").Intent == "Move Forward / Backward", "Vehicle throttle intent classification failed.");
+    Require(profile.Actions.Single(x => x.ActionName == "vehicle_throttle_abs").DisplayName == "Throttle - Forward / Backward", "Friendly vehicle throttle name was not used.");
+    Require(profile.Actions.Single(x => x.ActionName == "moveforward").Behavior == "Axis", "On-foot movement was not classified as an axis-compatible action.");
+    Require(profile.Actions.Single(x => x.ActionName == "moveforward").DisplayName == "Move Forward / Backward", "Friendly on-foot movement name was not used.");
+    Require(profile.Actions.Single(x => x.ActionName == "turret_elevation").DisplayName == "Turret Elevation", "Friendly turret action name was not used.");
     Require(profile.Actions.Single(x => x.ActionName == "v_atc_loading_area_request").Attributes.TryGetValue("multiTap", out var multiTap) && multiTap == "2", "Rebind attributes were not preserved.");
     Require(profile.Actions.Single(x => x.ActionName == "v_operator_mode_cycle").Intent == "Operator Mode", "Operator Mode intent classification failed.");
     Require(profile.Actions.Single(x => x.ActionName == "v_master_mode_cycle").Intent == "Master Mode", "Master Mode intent classification failed.");
     Require(profile.Actions.Single(x => x.ActionName == "v_operator_mode_cycle").Intent != profile.Actions.Single(x => x.ActionName == "v_master_mode_cycle").Intent, "Operator Mode and Master Mode were merged.");
+    Require(profile.Actions.Single(x => x.ActionName == "v_operator_mode_cycle").DisplayName == "Cycle Operator Mode", "Operator Mode display name is not explicit.");
+    Require(profile.Actions.Single(x => x.ActionName == "v_master_mode_cycle").DisplayName == "Cycle Master Mode", "Master Mode display name is not explicit.");
 
     var hardware = new HardwareDefinitionService();
     var settings = new StarbindV5Settings();
@@ -119,7 +134,7 @@ try
     Require((string?)zOption!.Attribute("deadzone") == "0.050000", "Axis deadzone was not persisted.");
     Require((string?)zOption.Attribute("exponent") == "1.350000", "Axis response curve exponent was not persisted.");
 
-    Console.WriteLine("Starbind profile, hardware and workspace smoke tests passed.");
+    Console.WriteLine("Starbind profile, hardware, action-language and workspace smoke tests passed.");
 }
 finally
 {
