@@ -13,6 +13,7 @@ public sealed partial class StarbindV5Window
         if (_v8DeviceNavigationHooked) return;
         _v8DeviceNavigationHooked = true;
         _deviceCards.LayoutUpdated += (_, _) => BringSelectedDeviceCardIntoView();
+        _deviceCanvasHost.LayoutUpdated += (_, _) => RefreshUnplacedControlTray();
     }
 
     private void BringSelectedDeviceCardIntoView()
