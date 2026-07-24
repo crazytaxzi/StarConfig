@@ -14,6 +14,7 @@ public sealed partial class StarbindV5Window
             ApplyReferenceSizing();
             ApplyToolRowSpacing();
             SelectMostAssignedControl();
+            BuildCorrectedKeyboardControlTree();
             RefreshCorrectedDeviceArtwork();
             RefreshCorrectedDeviceThumbnails();
         }, DispatcherPriority.Loaded);
@@ -86,6 +87,7 @@ public sealed partial class StarbindV5Window
 
     private void WidenJoystickArtwork()
     {
+        BuildCorrectedKeyboardControlTree();
         RefreshCorrectedDeviceArtwork();
     }
 }
