@@ -6,7 +6,6 @@ using System.Windows.Shapes;
 using ShapeEllipse = System.Windows.Shapes.Ellipse;
 using ShapeLine = System.Windows.Shapes.Line;
 using ShapePath = System.Windows.Shapes.Path;
-using ShapePolygon = System.Windows.Shapes.Polygon;
 using ShapePolyline = System.Windows.Shapes.Polyline;
 using ShapeRectangle = System.Windows.Shapes.Rectangle;
 
@@ -26,35 +25,42 @@ public sealed partial class StarbindV5Window
         if (_selectedTemplate.Family is HardwareFamily.Keyboard or HardwareFamily.Mouse or HardwareFamily.Gamepad)
         {
             var host = new Grid { LayoutTransform = new ScaleTransform(_zoom, _zoom) };
-            host.Children.Add(DeviceArtworkFactory.BuildLarge(_selectedTemplate.Family, 760, 420, Panel2, Border2, Cyan, Muted));
+            host.Children.Add(DeviceArtworkFactory.BuildLarge(_selectedTemplate.Family, 840, 470, Panel2, Border2, Cyan, Muted));
             AddSimpleControlOverlay(host);
-            _deviceCanvasHost.Children.Add(new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(8), Child = host });
+            _deviceCanvasHost.Children.Add(new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(14), Child = host });
             return;
         }
 
-        var canvas = new Canvas { Width = 820, Height = 440, LayoutTransform = new ScaleTransform(_zoom, _zoom) };
-        var viewbox = new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(4), Child = canvas };
+        const double canvasWidth = 1000;
+        const double canvasHeight = 520;
+        const double artworkLeft = 285;
+        const double artworkTop = 18;
+        const double artworkWidth = 430;
+        const double artworkHeight = 480;
+
+        var canvas = new Canvas { Width = canvasWidth, Height = canvasHeight, LayoutTransform = new ScaleTransform(_zoom, _zoom) };
+        var viewbox = new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(10), Child = canvas };
         _deviceCanvasHost.Children.Add(viewbox);
 
-        var artwork = BuildHardwareArtwork(_selectedTemplate, 330, 390);
-        Canvas.SetLeft(artwork, 245);
-        Canvas.SetTop(artwork, 18);
+        var artwork = BuildHardwareArtwork(_selectedTemplate, artworkWidth, artworkHeight);
+        Canvas.SetLeft(artwork, artworkLeft);
+        Canvas.SetTop(artwork, artworkTop);
         canvas.Children.Add(artwork);
 
         var controls = FilteredControls();
         var definitions = _selectedTemplate.Controls.ToDictionary(item => item.InputSuffix, StringComparer.OrdinalIgnoreCase);
         var display = controls
             .Where(control => definitions.TryGetValue(StarbindInput.Split(control.Input).Suffix, out var definition) && definition.HotspotX > 0 && definition.HotspotY > 0)
-            .OrderByDescending(control => EffectiveAssignments(control).Any())
+            .OrderByDescending(control => control.Input.Equals(_selectedControl?.Input, StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(control => EffectiveAssignments(control).Any())
             .ThenBy(control => NaturalOrder(control.Input))
-            .Take(18)
+            .Take(11)
             .ToList();
 
         foreach (var control in display)
         {
             var suffix = StarbindInput.Split(control.Input).Suffix;
-            var definition = definitions[suffix];
-            AddControlCallout(canvas, control, definition);
+            AddControlCallout(canvas, control, definitions[suffix], canvasWidth, canvasHeight, artworkLeft, artworkTop, artworkWidth, artworkHeight);
         }
 
         if (display.Count == 0)
@@ -64,11 +70,11 @@ public sealed partial class StarbindV5Window
                 Text = "No named hotspots are defined for this hardware yet. Use the control tree or Test Device to select a physical input.",
                 Foreground = Muted,
                 TextWrapping = TextWrapping.Wrap,
-                Width = 430,
+                Width = 500,
                 TextAlignment = TextAlignment.Center
             };
-            Canvas.SetLeft(note, 195);
-            Canvas.SetTop(note, 392);
+            Canvas.SetLeft(note, 250);
+            Canvas.SetTop(note, 468);
             canvas.Children.Add(note);
         }
     }
@@ -76,23 +82,22 @@ public sealed partial class StarbindV5Window
     private UIElement BuildHardwareArtwork(HardwareTemplate template, double width, double height)
     {
         if (template.ArtworkKey == "joystick")
-        {
             return new Image { Source = StarbindArtwork.LoadJoystick(), Width = width, Height = height, Stretch = Stretch.Uniform };
-        }
         return DeviceArtworkFactory.BuildLarge(template.Family, width, height, Panel2, Border2, Cyan, Muted);
     }
 
-    private void AddControlCallout(Canvas canvas, StarbindControl control, HardwareControlDefinition definition)
+    private void AddControlCallout(Canvas canvas, StarbindControl control, HardwareControlDefinition definition,
+        double canvasWidth, double canvasHeight, double artworkLeft, double artworkTop, double artworkWidth, double artworkHeight)
     {
         var selected = control.Input.Equals(_selectedControl?.Input, StringComparison.OrdinalIgnoreCase);
         var assignment = EffectiveAssignments(control).FirstOrDefault();
         var labelText = assignment is null ? control.DisplayName : $"{control.DisplayName}\n{assignment.DisplayName}";
-        var left = definition.LabelX * 820;
-        var top = definition.LabelY * 440;
-        var hotspotX = 245 + definition.HotspotX * 330;
-        var hotspotY = 18 + definition.HotspotY * 390;
-        var labelWidth = 155d;
-        var labelHeight = assignment is null ? 34d : 48d;
+        var left = definition.LabelX * canvasWidth;
+        var top = definition.LabelY * canvasHeight;
+        var hotspotX = artworkLeft + definition.HotspotX * artworkWidth;
+        var hotspotY = artworkTop + definition.HotspotY * artworkHeight;
+        var labelWidth = 175d;
+        var labelHeight = assignment is null ? 38d : 53d;
 
         var label = new Button
         {
@@ -101,9 +106,10 @@ public sealed partial class StarbindV5Window
             Height = labelHeight,
             Background = selected ? BlueDim : Panel2,
             Foreground = Text,
-            BorderBrush = selected ? Blue : Border2,
-            FontSize = 10,
-            Padding = new Thickness(6, 3, 6, 3),
+            BorderBrush = selected ? Cyan : Border2,
+            BorderThickness = new Thickness(selected ? 2 : 1),
+            FontSize = 10.5,
+            Padding = new Thickness(7, 4, 7, 4),
             Cursor = Cursors.Hand,
             Tag = control,
             ToolTip = definition.Description ?? control.DisplayName
@@ -122,17 +128,18 @@ public sealed partial class StarbindV5Window
             Y1 = lineStartY,
             X2 = hotspotX,
             Y2 = hotspotY,
-            Stroke = selected ? Blue : Border2,
-            StrokeThickness = selected ? 1.8 : 1.1
+            Stroke = selected ? Cyan : Border2,
+            StrokeThickness = selected ? 2.2 : 1.15,
+            Opacity = selected ? 1 : .88
         });
-        var hotspotSize = selected ? 12d : 8d;
+        var hotspotSize = selected ? 14d : 9d;
         var hotspot = new ShapeEllipse
         {
             Width = hotspotSize,
             Height = hotspotSize,
-            Fill = selected ? Blue : Cyan,
+            Fill = selected ? Cyan : Blue,
             Stroke = Field,
-            StrokeThickness = 1
+            StrokeThickness = 1.5
         };
         Canvas.SetLeft(hotspot, hotspotX - hotspotSize / 2);
         Canvas.SetTop(hotspot, hotspotY - hotspotSize / 2);
@@ -142,18 +149,18 @@ public sealed partial class StarbindV5Window
     private void AddSimpleControlOverlay(Grid host)
     {
         if (_selectedDevice is null) return;
-        var panel = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(30), MaxWidth = 650 };
-        foreach (var control in FilteredControls().Take(20))
+        var panel = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(35), MaxWidth = 720 };
+        foreach (var control in FilteredControls().OrderByDescending(control => EffectiveAssignments(control).Any()).Take(16))
         {
             var button = new Button
             {
                 Content = control.DisplayName,
                 Tag = control,
                 Background = control.Input.Equals(_selectedControl?.Input, StringComparison.OrdinalIgnoreCase) ? BlueDim : Panel2,
-                BorderBrush = control.Input.Equals(_selectedControl?.Input, StringComparison.OrdinalIgnoreCase) ? Blue : Border2,
+                BorderBrush = control.Input.Equals(_selectedControl?.Input, StringComparison.OrdinalIgnoreCase) ? Cyan : Border2,
                 Foreground = Text,
-                Margin = new Thickness(3),
-                Padding = new Thickness(8, 5, 8, 5),
+                Margin = new Thickness(4),
+                Padding = new Thickness(10, 6, 10, 6),
                 Cursor = Cursors.Hand
             };
             button.Click += (_, _) => SelectControl(control);
@@ -183,14 +190,12 @@ public sealed partial class StarbindV5Window
                 _curvePicker.SelectedItem = "Linear";
                 return;
             }
-
             if (_axisTunings.TryGetValue(control.Input, out var pending))
             {
                 _deadzonePicker.SelectedItem = PercentLabel(pending.Deadzone);
                 _curvePicker.SelectedItem = pending.CurveName;
                 return;
             }
-
             var (_, suffix) = StarbindInput.Split(control.Input);
             var option = _profile.AxisOptions.FirstOrDefault(item => item.DeviceInstance == control.DeviceInstance && item.Axis.Equals(suffix, StringComparison.OrdinalIgnoreCase));
             _deadzonePicker.SelectedItem = PercentLabel(option?.Deadzone ?? 0);
@@ -205,7 +210,7 @@ public sealed partial class StarbindV5Window
         if (_suppressUi || _selectedControl?.IsAxis != true || _selectedDevice is null) return;
         var (_, suffix) = StarbindInput.Split(_selectedControl.Input);
         var curveName = _curvePicker.SelectedItem as string ?? "Linear";
-        var tuning = new AxisTuningChange(
+        _axisTunings[_selectedControl.Input] = new AxisTuningChange(
             _selectedControl.Input,
             _selectedDevice.ProductName,
             _selectedDevice.Instance,
@@ -213,21 +218,19 @@ public sealed partial class StarbindV5Window
             ParsePercent(_deadzonePicker.SelectedItem as string),
             CurveExponent(curveName),
             curveName);
-        _axisTunings[_selectedControl.Input] = tuning;
         MarkDirty();
     }
 
     private void DrawResponseGraph(double liveValue = 0.65)
     {
         _responseGraph.Children.Clear();
-        var width = Math.Max(160, _responseGraph.ActualWidth > 1 ? _responseGraph.ActualWidth : 185);
-        var height = 98d;
+        var width = Math.Max(180, _responseGraph.ActualWidth > 1 ? _responseGraph.ActualWidth : 230);
+        var height = Math.Max(80, _responseGraph.ActualHeight > 1 ? _responseGraph.ActualHeight : 94);
         for (var i = 1; i < 4; i++)
         {
             _responseGraph.Children.Add(new ShapeLine { X1 = 0, Y1 = i * height / 4, X2 = width, Y2 = i * height / 4, Stroke = Border, StrokeThickness = 0.7 });
             _responseGraph.Children.Add(new ShapeLine { X1 = i * width / 4, Y1 = 0, X2 = i * width / 4, Y2 = height, Stroke = Border, StrokeThickness = 0.7 });
         }
-
         var deadzone = ParsePercent(_deadzonePicker.SelectedItem as string);
         var exponent = CurveExponent(_curvePicker.SelectedItem as string ?? "Linear");
         var points = new PointCollection();
@@ -238,9 +241,9 @@ public sealed partial class StarbindV5Window
             var y = Math.Pow(normalized, exponent);
             points.Add(new Point(x * width, height - y * height));
         }
-        _responseGraph.Children.Add(new ShapePolyline { Points = points, Stroke = Blue, StrokeThickness = 2 });
+        _responseGraph.Children.Add(new ShapePolyline { Points = points, Stroke = Blue, StrokeThickness = 2.3 });
         var markerX = Math.Clamp(liveValue, 0, 1) * width;
-        _responseGraph.Children.Add(new ShapeLine { X1 = markerX, Y1 = 0, X2 = markerX, Y2 = height, Stroke = Green, StrokeThickness = 1.5 });
+        _responseGraph.Children.Add(new ShapeLine { X1 = markerX, Y1 = 0, X2 = markerX, Y2 = height, Stroke = Green, StrokeThickness = 1.7 });
     }
 
     private static string PercentLabel(double value)
@@ -260,13 +263,7 @@ public sealed partial class StarbindV5Window
 
     private static string CurveName(double exponent)
     {
-        var curves = new[]
-        {
-            (Name: "Linear", Exponent: 1.0),
-            (Name: "Gentle", Exponent: 1.35),
-            (Name: "Aggressive", Exponent: 0.72),
-            (Name: "Precision", Exponent: 1.8)
-        };
+        var curves = new[] { (Name: "Linear", Exponent: 1.0), (Name: "Gentle", Exponent: 1.35), (Name: "Aggressive", Exponent: 0.72), (Name: "Precision", Exponent: 1.8) };
         return curves.OrderBy(curve => Math.Abs(curve.Exponent - exponent)).First().Name;
     }
 
@@ -302,24 +299,12 @@ internal static class DeviceArtworkFactory
         var canvas = new Canvas { Width = width, Height = height };
         switch (family)
         {
-            case HardwareFamily.Throttle:
-                DrawThrottle(canvas, width, height, fill, stroke, accent);
-                break;
-            case HardwareFamily.Pedals:
-                DrawPedals(canvas, width, height, fill, stroke, accent);
-                break;
-            case HardwareFamily.Keyboard:
-                DrawKeyboard(canvas, width, height, fill, stroke, accent);
-                break;
-            case HardwareFamily.Mouse:
-                DrawMouse(canvas, width, height, fill, stroke, accent);
-                break;
-            case HardwareFamily.Gamepad:
-                DrawGamepad(canvas, width, height, fill, stroke, accent);
-                break;
-            default:
-                DrawGenericStick(canvas, width, height, fill, stroke, accent);
-                break;
+            case HardwareFamily.Throttle: DrawThrottle(canvas, width, height, fill, stroke, accent); break;
+            case HardwareFamily.Pedals: DrawPedals(canvas, width, height, fill, stroke, accent); break;
+            case HardwareFamily.Keyboard: DrawKeyboard(canvas, width, height, fill, stroke, accent); break;
+            case HardwareFamily.Mouse: DrawMouse(canvas, width, height, fill, stroke, accent); break;
+            case HardwareFamily.Gamepad: DrawGamepad(canvas, width, height, fill, stroke, accent); break;
+            default: DrawGenericStick(canvas, width, height, fill, stroke, accent); break;
         }
         return canvas;
     }
@@ -338,17 +323,14 @@ internal static class DeviceArtworkFactory
         AddRounded(canvas, width * .18, height * .60, width * .64, height * .18, fill, stroke, 12);
         AddRounded(canvas, width * .17, height * .20, width * .25, height * .42, fill, stroke, 10, -10);
         AddRounded(canvas, width * .58, height * .20, width * .25, height * .42, fill, stroke, 10, 10);
-        var bar = new ShapeLine { X1 = width * .30, Y1 = height * .61, X2 = width * .70, Y2 = height * .61, Stroke = accent, StrokeThickness = Math.Max(2, width * .012) };
-        canvas.Children.Add(bar);
+        canvas.Children.Add(new ShapeLine { X1 = width * .30, Y1 = height * .61, X2 = width * .70, Y2 = height * .61, Stroke = accent, StrokeThickness = Math.Max(2, width * .012) });
     }
 
     private static void DrawKeyboard(Canvas canvas, double width, double height, Brush fill, Brush stroke, Brush accent)
     {
         AddRounded(canvas, width * .08, height * .25, width * .84, height * .50, fill, stroke, 10);
-        var rows = 4;
-        var columns = 12;
-        for (var row = 0; row < rows; row++)
-        for (var column = 0; column < columns; column++)
+        for (var row = 0; row < 4; row++)
+        for (var column = 0; column < 12; column++)
         {
             var key = new ShapeRectangle { Width = width * .055, Height = height * .065, RadiusX = 2, RadiusY = 2, Fill = column is 3 or 7 ? accent : stroke, Opacity = .7 };
             Canvas.SetLeft(key, width * .12 + column * width * .063);
@@ -360,8 +342,7 @@ internal static class DeviceArtworkFactory
     private static void DrawMouse(Canvas canvas, double width, double height, Brush fill, Brush stroke, Brush accent)
     {
         AddRounded(canvas, width * .31, height * .13, width * .38, height * .74, fill, stroke, Math.Min(width, height) * .18);
-        var split = new ShapeLine { X1 = width * .50, Y1 = height * .14, X2 = width * .50, Y2 = height * .43, Stroke = stroke, StrokeThickness = 2 };
-        canvas.Children.Add(split);
+        canvas.Children.Add(new ShapeLine { X1 = width * .50, Y1 = height * .14, X2 = width * .50, Y2 = height * .43, Stroke = stroke, StrokeThickness = 2 });
         AddRounded(canvas, width * .47, height * .27, width * .06, height * .16, accent, stroke, 4);
     }
 
