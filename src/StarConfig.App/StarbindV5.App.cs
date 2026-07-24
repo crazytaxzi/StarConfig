@@ -143,6 +143,9 @@ public sealed partial class StarbindV5Window : Window
         _inputTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
         _inputTimer.Tick += InputTimerTick;
         Loaded += (_, _) => InitializeApplication();
+        Loaded += (_, _) => ApplyReferencePolish();
+        SizeChanged += (_, _) => ApplyReferenceSizing();
+        _deviceCanvasHost.LayoutUpdated += (_, _) => WidenJoystickArtwork();
         Closing += (_, _) => _settingsStore.Save(_settings);
     }
 
