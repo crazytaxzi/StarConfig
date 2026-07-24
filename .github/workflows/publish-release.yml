@@ -4,14 +4,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '.release-trigger/v0.4.0.txt'
+      - '.release-trigger/v0.5.0.txt'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: starbind-release-v0.4.0
+  group: starbind-release-v0.5.0
   cancel-in-progress: false
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore and test
+      - name: Restore, build and run regression suite
         run: |
           dotnet restore StarConfig.sln
           dotnet build StarConfig.sln -c Release --no-restore
@@ -36,11 +36,19 @@ jobs:
       - name: Publish Starbind application
         run: dotnet publish .\src\StarConfig.App\StarConfig.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --no-restore -o .\dist\Starbind
 
-      - name: Create installer payload
+      - name: Launch-test the packaged desktop application
         shell: pwsh
         run: |
           $app = '.\dist\Starbind\Starbind.exe'
           if (-not (Test-Path $app)) { throw 'Starbind.exe was not produced.' }
+          $process = Start-Process $app -PassThru
+          Start-Sleep -Seconds 6
+          if ($process.HasExited) { throw "Starbind exited during startup with code $($process.ExitCode)." }
+          Stop-Process -Id $process.Id -Force
+
+      - name: Create installer payload
+        shell: pwsh
+        run: |
           $payload = '.\src\StarConfig.Installer\Payload.zip'
           if (Test-Path $payload) { Remove-Item $payload -Force }
           Compress-Archive -Path '.\dist\Starbind\*' -DestinationPath $payload -CompressionLevel Optimal
@@ -63,17 +71,17 @@ jobs:
       - name: Upload verified release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Starbind-Setup-v0.4.0
+          name: Starbind-Setup-v0.5.0
           path: |
             dist/Installer/Starbind-Setup.exe
             dist/Installer/Starbind-Setup.exe.sha256.txt
           if-no-files-found: error
 
-      - name: Publish Starbind v0.4.0
+      - name: Publish Starbind v0.5.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.4.0
-          name: Starbind v0.4.0
+          tag_name: v0.5.0
+          name: Starbind v0.5.0
           target_commitish: main
           draft: false
           prerelease: false
@@ -84,16 +92,19 @@ jobs:
             dist/Installer/Starbind-Setup.exe
             dist/Installer/Starbind-Setup.exe.sha256.txt
           body: |
-            Starbind v0.4.0 replaces the nonfunctional prototype with the control-first mapper represented by the approved design.
+            Starbind v0.5.0 implements the complete control-cockpit workflow represented by the approved application design.
 
-            - Reads exact joystick product names and instances from the Star Citizen profile instead of displaying generic WinMM driver names
-            - Preserves multiple rebind elements and attributes such as multiTap
-            - Correctly treats placeholder inputs such as `js2_ ` and `kb1_ ` as unbound
-            - Selects a physical control first and shows every assignment that uses it across game states
-            - Suggests semantically compatible actions without merging toggle, cycle, hold, direct, or axis behaviors
-            - Provides explicit keep/remove confirmation before changing cross-state bindings
-            - Uses the approved joystick artwork and callout-centered layout
-            - Reads and writes joystick deadzones from deviceoptions
-            - Creates a timestamped backup and validates the XML before replacement
-            - Migrates the old StarConfig installation to the renamed Starbind application
-            - Includes automated profile regression tests based on real Star Citizen export structure
+            - Device-specific definitions and named controls for VKB Gladiator, VKB STECS, Logitech/Saitek pedals, Thrustmaster T.16000M, VIRPIL, gamepads, keyboard and mouse
+            - Clickable physical control callouts anchored to hardware-specific layouts
+            - Working device cards, device selector, named Axes, Triggers, Buttons, Hats, Encoders and System Controls
+            - Working View in 3D, Test Device, Show Unassigned Only and Zoom controls
+            - Live control response, persistent deadzones and persistent response curves
+            - Primary action menu, per-state assignment selectors and staged multi-control editing
+            - Explicit Yes Keep All / No Let Me Choose / Remove From Which State workflow
+            - Action comparison, expanded plain-language action intelligence and strict Axis, Toggle, Cycle, Hold and Direct behavior separation
+            - Operator Mode and Master Mode remain distinct intents
+            - Working conflict list and Resolve All workflow
+            - Working Profiles, Settings, Help, profile import, duplicate and export tools
+            - Split Save menu, Validate, Backup and Save & Launch controls
+            - One timestamped backup and XML validation before a complete workspace save replaces the original profile
+            - Automated profile, hardware, cross-state, curve-persistence, startup, portable-app and installer verification
