@@ -125,15 +125,18 @@ public sealed partial class StarbindV5Window
             Stroke = selected ? Blue : Border2,
             StrokeThickness = selected ? 1.8 : 1.1
         });
-        canvas.Children.Add(new ShapeEllipse
+        var hotspotSize = selected ? 12d : 8d;
+        var hotspot = new ShapeEllipse
         {
-            Width = selected ? 12 : 8,
-            Height = selected ? 12 : 8,
+            Width = hotspotSize,
+            Height = hotspotSize,
             Fill = selected ? Blue : Cyan,
             Stroke = Field,
-            StrokeThickness = 1,
-            Margin = new Thickness(hotspotX - (selected ? 6 : 4), hotspotY - (selected ? 6 : 4), 0, 0)
-        });
+            StrokeThickness = 1
+        };
+        Canvas.SetLeft(hotspot, hotspotX - hotspotSize / 2);
+        Canvas.SetTop(hotspot, hotspotY - hotspotSize / 2);
+        canvas.Children.Add(hotspot);
     }
 
     private void AddSimpleControlOverlay(Grid host)
@@ -191,7 +194,7 @@ public sealed partial class StarbindV5Window
             var (_, suffix) = StarbindInput.Split(control.Input);
             var option = _profile.AxisOptions.FirstOrDefault(item => item.DeviceInstance == control.DeviceInstance && item.Axis.Equals(suffix, StringComparison.OrdinalIgnoreCase));
             _deadzonePicker.SelectedItem = PercentLabel(option?.Deadzone ?? 0);
-            _curvePicker.SelectedItem = "Linear";
+            _curvePicker.SelectedItem = CurveName(option?.Exponent ?? 1.0);
         }
         finally { _suppressUi = false; }
     }
@@ -254,6 +257,18 @@ public sealed partial class StarbindV5Window
         "Precision" => 1.8,
         _ => 1.0
     };
+
+    private static string CurveName(double exponent)
+    {
+        var curves = new[]
+        {
+            (Name: "Linear", Exponent: 1.0),
+            (Name: "Gentle", Exponent: 1.35),
+            (Name: "Aggressive", Exponent: 0.72),
+            (Name: "Precision", Exponent: 1.8)
+        };
+        return curves.OrderBy(curve => Math.Abs(curve.Exponent - exponent)).First().Name;
+    }
 
     private static double ParsePercent(string? value)
     {
