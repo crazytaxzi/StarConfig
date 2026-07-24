@@ -24,7 +24,25 @@ jobs:
         run: dotnet restore StarConfig.sln
 
       - name: Build solution
-        run: dotnet build StarConfig.sln -c Release --no-restore
+        id: compile
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          dotnet build StarConfig.sln -c Release --no-restore -v:minimal 2>&1 | Tee-Object -FilePath compiler-output.txt
+          exit $LASTEXITCODE
+
+      - name: Upload compiler diagnostics
+        if: steps.compile.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Starbind-compiler-errors
+          path: compiler-output.txt
+          if-no-files-found: error
+
+      - name: Stop after compiler failure
+        if: steps.compile.outcome == 'failure'
+        shell: pwsh
+        run: exit 1
 
       - name: Run Star Citizen profile regression tests
         run: dotnet run --project .\src\StarConfig.Smoke\StarConfig.Smoke.csproj -c Release
