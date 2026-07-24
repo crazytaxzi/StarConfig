@@ -68,7 +68,8 @@ public sealed record StarbindDeviceAxisOption(
     int DeviceInstance,
     string Axis,
     double Deadzone,
-    bool Inverted);
+    bool Inverted,
+    double Exponent = 1.0);
 
 public sealed class StarbindProfile
 {
