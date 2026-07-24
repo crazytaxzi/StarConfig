@@ -108,3 +108,42 @@ jobs:
             - Split Save menu, Validate, Backup and Save & Launch controls
             - One timestamped backup and XML validation before a complete workspace save replaces the original profile
             - Automated profile, hardware, cross-state, curve-persistence, startup, portable-app and installer verification
+
+      - name: Download and verify the public release asset
+        shell: pwsh
+        run: |
+          $built = '.\dist\Installer\Starbind-Setup.exe'
+          $downloaded = Join-Path $env:RUNNER_TEMP 'Starbind-Setup-public.exe'
+          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v0.5.0/Starbind-Setup.exe"
+          $expectedHash = (Get-FileHash $built -Algorithm SHA256).Hash
+          $attempts = 0
+          do {
+            $attempts++
+            try {
+              Invoke-WebRequest -Uri $url -OutFile $downloaded -MaximumRedirection 10
+              $actualHash = (Get-FileHash $downloaded -Algorithm SHA256).Hash
+              if ($actualHash -ne $expectedHash) { throw "Published installer hash mismatch. Expected $expectedHash but received $actualHash." }
+              break
+            }
+            catch {
+              if ($attempts -ge 6) { throw }
+              Start-Sleep -Seconds 10
+            }
+          } while ($true)
+          "Version: 0.5.0" | Set-Content release-verification.txt
+          "Asset: Starbind-Setup.exe" | Add-Content release-verification.txt
+          "SHA256: $expectedHash" | Add-Content release-verification.txt
+          "VerifiedAtUtc: $([DateTime]::UtcNow.ToString('o'))" | Add-Content release-verification.txt
+
+      - name: Record public release verification
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force '.release-verified' | Out-Null
+          Copy-Item release-verification.txt '.release-verified\v0.5.0.txt' -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '.release-verified/v0.5.0.txt'
+          if (-not (git diff --cached --quiet)) {
+            git commit -m 'Verify public Starbind v0.5.0 installer'
+            git push origin HEAD:main
+          }
