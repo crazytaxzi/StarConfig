@@ -1,3 +1,4 @@
+using System.IO;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -43,15 +44,25 @@ public sealed partial class StarbindProfileService
         var document = XDocument.Load(profile.FilePath, LoadOptions.PreserveWhitespace);
         var profileElement = document.Descendants().First(x => x.Name.LocalName.Equals("ActionProfiles", StringComparison.OrdinalIgnoreCase));
 
+        var additions = mutations.Where(m => m.Kind == BindingMutationKind.AddInput).ToList();
         foreach (var removalGroup in mutations.Where(m => m.Kind == BindingMutationKind.RemoveInput).GroupBy(m => (m.Context, m.Input), new ContextInputComparer()))
         {
             foreach (var actionMap in profileElement.Elements().Where(IsActionMap))
             {
                 var mapName = (string?)actionMap.Attribute("name") ?? string.Empty;
-                foreach (var action in actionMap.Elements().Where(IsAction))
+                var actions = actionMap.Elements().Where(IsAction).ToList();
+                for (var actionIndex = 0; actionIndex < actions.Count; actionIndex++)
                 {
+                    var action = actions[actionIndex];
                     var actionName = (string?)action.Attribute("name") ?? string.Empty;
                     if (!ClassifyContext(mapName, actionName).Equals(removalGroup.Key.Context, StringComparison.OrdinalIgnoreCase)) continue;
+                    var preserveExistingRebind = additions.Any(addition =>
+                        addition.Context.Equals(removalGroup.Key.Context, StringComparison.OrdinalIgnoreCase)
+                        && addition.Input.Equals(removalGroup.Key.Input, StringComparison.OrdinalIgnoreCase)
+                        && addition.ActionMap.Equals(mapName, StringComparison.OrdinalIgnoreCase)
+                        && addition.ActionOrdinal == actionIndex
+                        && addition.ActionName.Equals(actionName, StringComparison.OrdinalIgnoreCase));
+                    if (preserveExistingRebind) continue;
                     foreach (var rebind in action.Elements().Where(IsRebind).ToList())
                     {
                         if (StarbindInput.Normalize((string?)rebind.Attribute("input")).Equals(removalGroup.Key.Input, StringComparison.OrdinalIgnoreCase)) rebind.Remove();
@@ -60,7 +71,7 @@ public sealed partial class StarbindProfileService
             }
         }
 
-        foreach (var mutation in mutations.Where(m => m.Kind == BindingMutationKind.AddInput))
+        foreach (var mutation in additions)
         {
             var actionMap = profileElement.Elements().Where(IsActionMap)
                 .FirstOrDefault(x => string.Equals((string?)x.Attribute("name"), mutation.ActionMap, StringComparison.OrdinalIgnoreCase))

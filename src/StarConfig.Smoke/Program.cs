@@ -47,8 +47,17 @@ try
     Require(profile.Actions.Single(x => x.ActionName == "v_strafe_longitudinal").Intent == "Move Forward / Backward", "Movement intent classification failed.");
     Require(profile.Actions.Single(x => x.ActionName == "v_atc_loading_area_request").Attributes.TryGetValue("multiTap", out var multiTap) && multiTap == "2", "Rebind attributes were not preserved.");
 
-    var jump = profile.Actions.Single(x => x.ActionName == "jump");
-    var backup = service.SaveAssignments(profile,
+    var atc = profile.Actions.Single(x => x.ActionName == "v_atc_loading_area_request");
+    service.SaveAssignments(profile,
+    [
+        new BindingMutation(BindingMutationKind.RemoveInput, "Flight", string.Empty, -1, string.Empty, "js2_button4"),
+        new BindingMutation(BindingMutationKind.AddInput, "Flight", atc.ActionMap, atc.ActionOrdinal, atc.ActionName, "js2_button4")
+    ]);
+    var preserved = service.Load(file, []);
+    Require(preserved.Actions.Single(x => x.ActionName == "v_atc_loading_area_request").Attributes.TryGetValue("multiTap", out var savedMultiTap) && savedMultiTap == "2", "Keeping an existing action stripped its multiTap attribute.");
+
+    var jump = preserved.Actions.Single(x => x.ActionName == "jump");
+    var backup = service.SaveAssignments(preserved,
     [
         new BindingMutation(BindingMutationKind.RemoveInput, "On Foot", string.Empty, -1, string.Empty, "js2_button2"),
         new BindingMutation(BindingMutationKind.AddInput, "On Foot", jump.ActionMap, jump.ActionOrdinal, jump.ActionName, "js1_button9")
