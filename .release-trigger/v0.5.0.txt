@@ -1,1 +1,1 @@
-Publish Starbind v0.5.0 from the verified complete control-cockpit implementation.
+Republish Starbind v0.5.0 and verify the public installer asset against the runner-built SHA-256.
