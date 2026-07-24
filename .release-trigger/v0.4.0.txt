@@ -1,0 +1,1 @@
+Publish the verified Starbind v0.4.0 installer from the green Windows build and Star Citizen profile regression tests.
