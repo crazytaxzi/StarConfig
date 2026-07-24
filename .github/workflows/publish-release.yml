@@ -4,14 +4,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '.release-trigger/v0.5.0.txt'
+      - '.release-trigger/v0.6.0.txt'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: starbind-release-v0.5.0
+  group: starbind-release-v0.6.0
   cancel-in-progress: false
 
 jobs:
@@ -71,17 +71,17 @@ jobs:
       - name: Upload verified release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Starbind-Setup-v0.5.0
+          name: Starbind-Setup-v0.6.0
           path: |
             dist/Installer/Starbind-Setup.exe
             dist/Installer/Starbind-Setup.exe.sha256.txt
           if-no-files-found: error
 
-      - name: Publish Starbind v0.5.0
+      - name: Publish Starbind v0.6.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.5.0
-          name: Starbind v0.5.0
+          tag_name: v0.6.0
+          name: Starbind v0.6.0
           target_commitish: main
           draft: false
           prerelease: false
@@ -92,29 +92,24 @@ jobs:
             dist/Installer/Starbind-Setup.exe
             dist/Installer/Starbind-Setup.exe.sha256.txt
           body: |
-            Starbind v0.5.0 implements the complete control-cockpit workflow represented by the approved application design.
+            Starbind v0.6.0 is the clarity and usability rebuild of the Windows control cockpit.
 
-            - Device-specific definitions and named controls for VKB Gladiator, VKB STECS, Logitech/Saitek pedals, Thrustmaster T.16000M, VIRPIL, gamepads, keyboard and mouse
-            - Clickable physical control callouts anchored to hardware-specific layouts
-            - Working device cards, device selector, named Axes, Triggers, Buttons, Hats, Encoders and System Controls
-            - Working View in 3D, Test Device, Show Unassigned Only and Zoom controls
-            - Live control response, persistent deadzones and persistent response curves
-            - Primary action menu, per-state assignment selectors and staged multi-control editing
-            - Explicit Yes Keep All / No Let Me Choose / Remove From Which State workflow
-            - Action comparison, expanded plain-language action intelligence and strict Axis, Toggle, Cycle, Hold and Direct behavior separation
-            - Operator Mode and Master Mode remain distinct intents
-            - Working conflict list and Resolve All workflow
-            - Working Profiles, Settings, Help, profile import, duplicate and export tools
-            - Split Save menu, Validate, Backup and Save & Launch controls
-            - One timestamped backup and XML validation before a complete workspace save replaces the original profile
-            - Automated profile, hardware, cross-state, curve-persistence, startup, portable-app and installer verification
+            - Rebuilt the main workspace into a clear three-column physical-control workflow
+            - Enlarged the selected hardware view and reduced callout clutter
+            - Replaced native white selectors with fully themed Starbind controls
+            - Kept state assignments visible at normal Windows DPI and common screen sizes
+            - Made device status truthful by separating LIVE devices from PROFILE ONLY devices
+            - Replaced ambiguous numeric badges with explicit binding counts
+            - Wrapped state-overview cards instead of forcing horizontal navigation
+            - Kept live input capture, hardware definitions, semantic action matching, conflict resolution, profile management, deadzones, response curves, safe backups, XML validation, and Save and Launch behavior
+            - Verified by compilation, profile/hardware/workspace regression tests, packaged desktop startup, a real Windows UI capture, portable publishing, and installer packaging
 
       - name: Download and verify the public release asset
         shell: pwsh
         run: |
           $built = '.\dist\Installer\Starbind-Setup.exe'
           $downloaded = Join-Path $env:RUNNER_TEMP 'Starbind-Setup-public.exe'
-          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v0.5.0/Starbind-Setup.exe"
+          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v0.6.0/Starbind-Setup.exe"
           $expectedHash = (Get-FileHash $built -Algorithm SHA256).Hash
           $attempts = 0
           do {
@@ -130,7 +125,7 @@ jobs:
               Start-Sleep -Seconds 10
             }
           } while ($true)
-          "Version: 0.5.0" | Set-Content release-verification.txt
+          "Version: 0.6.0" | Set-Content release-verification.txt
           "Asset: Starbind-Setup.exe" | Add-Content release-verification.txt
           "SHA256: $expectedHash" | Add-Content release-verification.txt
           "VerifiedAtUtc: $([DateTime]::UtcNow.ToString('o'))" | Add-Content release-verification.txt
@@ -139,11 +134,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force '.release-verified' | Out-Null
-          Copy-Item release-verification.txt '.release-verified\v0.5.0.txt' -Force
+          Copy-Item release-verification.txt '.release-verified\v0.6.0.txt' -Force
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add '.release-verified/v0.5.0.txt'
+          git add '.release-verified/v0.6.0.txt'
           if (-not (git diff --cached --quiet)) {
-            git commit -m 'Verify public Starbind v0.5.0 installer'
+            git commit -m 'Verify public Starbind v0.6.0 installer'
             git push origin HEAD:main
           }

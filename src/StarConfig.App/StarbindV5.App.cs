@@ -100,7 +100,7 @@ public sealed partial class StarbindV5Window : Window
     private readonly TreeView _actionTree = new();
     private readonly TextBlock _browserActionTitle = new();
     private readonly TextBlock _browserActionBody = new();
-    private readonly StackPanel _stateOverview = new() { Orientation = Orientation.Horizontal };
+    private readonly WrapPanel _stateOverview = new() { Orientation = Orientation.Horizontal };
     private readonly TextBlock _status = new();
     private readonly TextBlock _savedText = new();
     private readonly Button _listenButton = new();
@@ -111,13 +111,13 @@ public sealed partial class StarbindV5Window : Window
     private readonly Button _resolveAllButton = new();
     private readonly Button _saveLaunchButton = new();
     private readonly Button _saveMenuButton = new();
-    private readonly CheckBox _showUnassigned = new() { Content = "Show Unassigned Only", Foreground = Muted, VerticalAlignment = VerticalAlignment.Center };
+    private readonly CheckBox _showUnassigned = new() { Content = "Show unassigned only", Foreground = Muted, VerticalAlignment = VerticalAlignment.Center };
     private readonly ComboBox _zoomPicker = new();
 
     public StarbindV5Window()
     {
         _settings = _settingsStore.Load();
-        Title = "Starbind - Star Citizen Control Mapper";
+        Title = "Starbind 0.6 - Star Citizen Control Mapper";
         Width = 1720;
         Height = 1040;
         MinWidth = 1360;
@@ -126,6 +126,9 @@ public sealed partial class StarbindV5Window : Window
         Foreground = Text;
         FontFamily = new FontFamily("Segoe UI");
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        InstallControlStyles();
+        Resources[typeof(ComboBox)] = Resources["StarbindCombo"];
+        Resources[typeof(ComboBoxItem)] = Resources["StarbindComboItem"];
         Content = BuildLayout();
 
         PreviewKeyDown += CaptureKeyboard;
