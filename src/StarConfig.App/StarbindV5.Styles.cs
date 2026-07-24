@@ -73,10 +73,66 @@ public sealed partial class StarbindV5Window
       </Setter.Value>
     </Setter>
   </Style>
-  <Style x:Key="StarbindScrollBar" TargetType="ScrollBar">
-    <Setter Property="Width" Value="9"/>
-    <Setter Property="Background" Value="#0D131A"/>
-    <Setter Property="Foreground" Value="#46576B"/>
+  <Style TargetType="ScrollBar">
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Width" Value="8"/>
+    <Setter Property="Height" Value="8"/>
+    <Setter Property="Background" Value="#080C12"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollBar">
+          <Grid Background="{TemplateBinding Background}" Margin="1">
+            <Track x:Name="PART_Track" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True" Focusable="False">
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Focusable="False" Opacity="0"/>
+              </Track.DecreaseRepeatButton>
+              <Track.Thumb>
+                <Thumb x:Name="ScrollThumb" Background="#3B4D61" MinWidth="24" MinHeight="24">
+                  <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                      <Border x:Name="ThumbBody" Background="{TemplateBinding Background}" CornerRadius="4" Margin="1"/>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ThumbBody" Property="Background" Value="#52749A"/></Trigger>
+                        <Trigger Property="IsDragging" Value="True"><Setter TargetName="ThumbBody" Property="Background" Value="#3E8DFF"/></Trigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </Thumb.Template>
+                </Thumb>
+              </Track.Thumb>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Focusable="False" Opacity="0"/>
+              </Track.IncreaseRepeatButton>
+            </Track>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal"><Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="#AAB5C2"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border x:Name="Box" Width="14" Height="14" Background="#0D131A" BorderBrush="#46576B" BorderThickness="1" CornerRadius="2" VerticalAlignment="Center">
+              <TextBlock x:Name="Mark" Text="✓" Foreground="#6AB9FF" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+            </Border>
+            <ContentPresenter Grid.Column="1" Margin="7,0,0,0" VerticalAlignment="Center"/>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Mark" Property="Visibility" Value="Visible"/><Setter TargetName="Box" Property="BorderBrush" Value="#3E8DFF"/><Setter TargetName="Box" Property="Background" Value="#173A67"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Box" Property="BorderBrush" Value="#6AB9FF"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 </ResourceDictionary>
 """;
@@ -125,7 +181,7 @@ public sealed partial class StarbindV5Window
             Background = Brushes.Transparent,
             Foreground = Muted,
             BorderBrush = Brushes.Transparent,
-            Padding = new Thickness(10, 8, 10, 8),
+            Padding = new Thickness(9, 6, 9, 6),
             Cursor = Cursors.Hand
         };
         button.Click += click;
@@ -140,7 +196,7 @@ public sealed partial class StarbindV5Window
             Background = Panel2,
             Foreground = Text,
             BorderBrush = Border,
-            Padding = new Thickness(14, 10, 14, 10),
+            Padding = new Thickness(13, 9, 13, 9),
             Margin = new Thickness(4, 0, 0, 0),
             Cursor = Cursors.Hand
         };
@@ -154,25 +210,27 @@ public sealed partial class StarbindV5Window
         button.Background = background;
         button.Foreground = Text;
         button.BorderBrush = Border2;
-        button.Padding = new Thickness(11, 8, 11, 8);
+        button.Padding = new Thickness(10, 7, 10, 7);
         button.Margin = new Thickness(4, 0, 0, 0);
         button.Cursor = Cursors.Hand;
         button.Click += click;
     }
 
-    private void StyleCombo(ComboBox combo)
+    private static void StyleCombo(ComboBox combo)
     {
-        combo.Style = (Style)Resources["StarbindCombo"];
-        combo.MinHeight = 31;
+        combo.Background = Field;
+        combo.Foreground = Text;
+        combo.BorderBrush = Border2;
+        combo.Padding = new Thickness(6, 4, 6, 4);
     }
 
     private static void StyleTextBox(TextBox box)
     {
         box.Background = Field;
         box.Foreground = Text;
-        box.BorderBrush = Border2;
+        box.BorderBrush = Border;
         box.CaretBrush = Text;
-        box.Padding = new Thickness(8, 6, 8, 6);
+        box.Padding = new Thickness(6, 5, 6, 5);
     }
 
     private static void StyleTree(TreeView tree)
@@ -180,9 +238,7 @@ public sealed partial class StarbindV5Window
         tree.Background = Field;
         tree.Foreground = Text;
         tree.BorderBrush = Border;
-        tree.Padding = new Thickness(5);
-        ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
-        ScrollViewer.SetVerticalScrollBarVisibility(tree, ScrollBarVisibility.Auto);
+        tree.Padding = new Thickness(3);
     }
 
     private static void StyleList(ListBox list)
@@ -190,9 +246,7 @@ public sealed partial class StarbindV5Window
         list.Background = Field;
         list.Foreground = Text;
         list.BorderBrush = Border;
-        list.Padding = new Thickness(4);
-        ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
-        ScrollViewer.SetVerticalScrollBarVisibility(list, ScrollBarVisibility.Auto);
+        list.Padding = new Thickness(3);
     }
 
     private static TreeViewItem TreeGroup(string text) => new()
@@ -206,12 +260,12 @@ public sealed partial class StarbindV5Window
     {
         var template = new DataTemplate(typeof(StarbindWarning));
         var panel = new FrameworkElementFactory(typeof(DockPanel));
-        panel.SetValue(FrameworkElement.MarginProperty, new Thickness(3, 6, 3, 6));
+        panel.SetValue(FrameworkElement.MarginProperty, new Thickness(2, 4, 2, 4));
         var icon = new FrameworkElementFactory(typeof(TextBlock));
         icon.SetBinding(TextBlock.TextProperty, new Binding(nameof(StarbindWarning.Icon)));
         icon.SetBinding(TextBlock.ForegroundProperty, new Binding(nameof(StarbindWarning.Color)));
         icon.SetValue(TextBlock.FontWeightProperty, FontWeights.Bold);
-        icon.SetValue(FrameworkElement.WidthProperty, 22d);
+        icon.SetValue(FrameworkElement.WidthProperty, 20d);
         icon.SetValue(DockPanel.DockProperty, Dock.Left);
         panel.AppendChild(icon);
         var text = new FrameworkElementFactory(typeof(TextBlock));
@@ -223,14 +277,17 @@ public sealed partial class StarbindV5Window
         return template;
     }
 
-    internal static Button DialogButton(string text, Brush background) => new()
+    internal static Button DialogButton(string text, Brush background)
     {
-        Content = text,
-        Background = background,
-        Foreground = Text,
-        BorderBrush = Border2,
-        Padding = new Thickness(12, 8, 12, 8),
-        Margin = new Thickness(5, 0, 0, 0),
-        Cursor = Cursors.Hand
-    };
+        return new Button
+        {
+            Content = text,
+            Background = background,
+            Foreground = Text,
+            BorderBrush = Border2,
+            Padding = new Thickness(12, 8, 12, 8),
+            Margin = new Thickness(5, 0, 0, 0),
+            Cursor = Cursors.Hand
+        };
+    }
 }
