@@ -12,12 +12,16 @@ public sealed class StateBindingDecisionWindow : Window
     private readonly Dictionary<string, CheckBox> _checks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Border _choicePanel = new();
     private readonly TextBlock _instruction = new();
+    private readonly Button _confirmButton;
     public IReadOnlyList<StateBindingDecisionResult> Results { get; private set; } = [];
 
     public StateBindingDecisionWindow(StarbindControl control, IReadOnlyList<PlannedStateBinding> states)
     {
         _control = control;
         _states = states;
+        _confirmButton = StarbindV5Window.DialogButton("CONFIRM", StarbindV5Window.BlueDim);
+        _confirmButton.IsEnabled = false;
+        _confirmButton.Click += (_, _) => FinishChooser();
         Title = "Duplicate / Similar Action Detected";
         Width = 760;
         Height = 590;
@@ -98,12 +102,8 @@ public sealed class StateBindingDecisionWindow : Window
         cancel.Click += (_, _) => { DialogResult = false; Close(); };
         Grid.SetColumn(cancel, 1);
         footer.Children.Add(cancel);
-        var confirm = StarbindV5Window.DialogButton("CONFIRM", StarbindV5Window.BlueDim);
-        confirm.IsEnabled = false;
-        confirm.Name = "ConfirmButton";
-        confirm.Click += (_, _) => FinishChooser();
-        Grid.SetColumn(confirm, 2);
-        footer.Children.Add(confirm);
+        Grid.SetColumn(_confirmButton, 2);
+        footer.Children.Add(_confirmButton);
         Grid.SetRow(footer, 3);
         root.Children.Add(footer);
         return root;
@@ -149,7 +149,7 @@ public sealed class StateBindingDecisionWindow : Window
     {
         _choicePanel.Visibility = Visibility.Visible;
         _instruction.Text = "Unchecked states will lose this physical input. Actions themselves are not deleted.";
-        if (FindName("ConfirmButton") is Button confirm) confirm.IsEnabled = true;
+        _confirmButton.IsEnabled = true;
     }
 
     private void FinishKeepAll()
@@ -161,6 +161,7 @@ public sealed class StateBindingDecisionWindow : Window
 
     private void FinishChooser()
     {
+        if (_choicePanel.Visibility != Visibility.Visible) return;
         Results = _states.Select(state => new StateBindingDecisionResult(state.Context, _checks.TryGetValue(state.Context, out var check) && check.IsChecked == true && state.Action is not null, state.Action)).ToList();
         DialogResult = true;
         Close();
@@ -219,7 +220,6 @@ public sealed class ActionComparisonWindow : Window
         stack.Children.Add(LabelValue("BEHAVIOR", action.Behavior));
         stack.Children.Add(LabelValue("CATEGORY", action.Category));
         stack.Children.Add(new TextBlock { Text = action.Description, Foreground = StarbindV5Window.Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
-        stack.Children.Add(new TextBlock { Text = action.Behavior == selected.ToString() ? "" : string.Empty });
         stack.Children.Add(new TextBlock { Text = $"Raw: {action.ActionName}", Foreground = StarbindV5Window.Faint, FontSize = 9, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
         card.Child = stack;
         return card;
