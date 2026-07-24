@@ -12,11 +12,11 @@ public sealed partial class StarbindV5Window
     private UIElement BuildLayout()
     {
         var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(56) });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(78) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(52) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(72) });
         root.RowDefinitions.Add(new RowDefinition());
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(230) });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(58) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(200) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(56) });
 
         root.Children.Add(BuildTopBar());
         var devices = BuildDeviceBar();
@@ -91,7 +91,7 @@ public sealed partial class StarbindV5Window
 
     private UIElement BuildDeviceBar()
     {
-        var shell = new Border { Background = Bg, Padding = new Thickness(16, 8, 16, 8) };
+        var shell = new Border { Background = Bg, Padding = new Thickness(16, 6, 16, 6) };
         shell.Child = new ScrollViewer
         {
             Content = _deviceCards,
@@ -103,19 +103,16 @@ public sealed partial class StarbindV5Window
 
     private UIElement BuildMainWorkspace()
     {
-        var grid = new Grid { Margin = new Thickness(16, 0, 16, 10) };
+        var grid = new Grid { Margin = new Thickness(16, 0, 16, 8) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(430) });
 
-        var controls = BuildControlPanel();
-        grid.Children.Add(controls);
-
+        grid.Children.Add(BuildControlPanel());
         var visual = BuildVisualPanel();
         visual.Margin = new Thickness(10, 0, 10, 0);
         Grid.SetColumn(visual, 1);
         grid.Children.Add(visual);
-
         var rightRail = BuildRightRail();
         Grid.SetColumn(rightRail, 2);
         grid.Children.Add(rightRail);
@@ -137,12 +134,12 @@ public sealed partial class StarbindV5Window
         Grid.SetRow(hint, 1);
         controlsGrid.Children.Add(hint);
         StyleCombo(_devicePicker);
-        _devicePicker.Margin = new Thickness(0, 9, 0, 0);
+        _devicePicker.Margin = new Thickness(0, 8, 0, 0);
         _devicePicker.SelectionChanged += (_, _) => DevicePickerChanged();
         Grid.SetRow(_devicePicker, 2);
         controlsGrid.Children.Add(_devicePicker);
         StyleTree(_controlTree);
-        _controlTree.Margin = new Thickness(0, 9, 0, 0);
+        _controlTree.Margin = new Thickness(0, 8, 0, 0);
         _controlTree.SelectedItemChanged += (_, _) => ControlTreeChanged();
         Grid.SetRow(_controlTree, 3);
         controlsGrid.Children.Add(_controlTree);
@@ -153,9 +150,9 @@ public sealed partial class StarbindV5Window
     {
         var visual = Card();
         var visualGrid = new Grid();
-        visualGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(64) });
+        visualGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(58) });
         visualGrid.RowDefinitions.Add(new RowDefinition());
-        visualGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(56) });
+        visualGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(52) });
         visual.Child = visualGrid;
 
         var visualHeader = new Grid { Margin = new Thickness(15, 0, 15, 0) };
@@ -172,7 +169,7 @@ public sealed partial class StarbindV5Window
         deviceWords.Children.Add(_deviceSubtitle);
         visualHeader.Children.Add(deviceWords);
         ConfigureButton(_listenButton, "◎  LISTEN FOR INPUT", ToggleListen, BlueDim);
-        _listenButton.Padding = new Thickness(14, 10, 14, 10);
+        _listenButton.Padding = new Thickness(14, 9, 14, 9);
         Grid.SetColumn(_listenButton, 1);
         visualHeader.Children.Add(_listenButton);
         visualGrid.Children.Add(visualHeader);
@@ -182,7 +179,7 @@ public sealed partial class StarbindV5Window
         Grid.SetRow(_deviceCanvasHost, 1);
         visualGrid.Children.Add(_deviceCanvasHost);
 
-        var tools = new Grid { Margin = new Thickness(12, 7, 12, 7) };
+        var tools = new Grid { Margin = new Thickness(12, 6, 12, 6) };
         tools.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         tools.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         tools.ColumnDefinitions.Add(new ColumnDefinition());
@@ -218,12 +215,11 @@ public sealed partial class StarbindV5Window
     private UIElement BuildRightRail()
     {
         var grid = new Grid();
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(205) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(150) });
         grid.RowDefinitions.Add(new RowDefinition());
-        var selected = BuildSelectedControlPanel();
-        grid.Children.Add(selected);
+        grid.Children.Add(BuildSelectedControlPanel());
         var assignment = BuildAssignmentPanel();
-        assignment.Margin = new Thickness(0, 10, 0, 0);
+        assignment.Margin = new Thickness(0, 8, 0, 0);
         Grid.SetRow(assignment, 1);
         grid.Children.Add(assignment);
         return grid;
@@ -232,97 +228,99 @@ public sealed partial class StarbindV5Window
     private Border BuildSelectedControlPanel()
     {
         var panel = Card();
-        panel.Padding = new Thickness(12);
+        panel.Padding = new Thickness(11);
         var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition());
         panel.Child = root;
         root.Children.Add(PanelTitle("SELECTED CONTROL"));
 
-        var name = new Grid { Margin = new Thickness(0, 8, 0, 8) };
-        name.ColumnDefinitions.Add(new ColumnDefinition());
-        name.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var words = new StackPanel();
-        _selectedControlName.Text = "No control selected";
-        _selectedControlName.FontSize = 18;
-        _selectedControlName.FontWeight = FontWeights.SemiBold;
-        words.Children.Add(_selectedControlName);
-        _selectedControlInput.Foreground = Cyan;
-        _selectedControlInput.FontSize = 10;
-        _selectedControlInput.TextWrapping = TextWrapping.Wrap;
-        words.Children.Add(_selectedControlInput);
-        name.Children.Add(words);
-        var counts = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
-        counts.Children.Add(SmallLabel("ASSIGNMENTS", new Thickness(0)));
-        _selectedControlAssignmentCount.Text = "0";
-        _selectedControlAssignmentCount.FontSize = 18;
-        _selectedControlAssignmentCount.FontWeight = FontWeights.Bold;
-        _selectedControlAssignmentCount.Foreground = Green;
-        _selectedControlAssignmentCount.HorizontalAlignment = HorizontalAlignment.Right;
-        counts.Children.Add(_selectedControlAssignmentCount);
-        Grid.SetColumn(counts, 1);
-        name.Children.Add(counts);
-        Grid.SetRow(name, 1);
-        root.Children.Add(name);
-
-        var lower = new Grid();
-        lower.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(145) });
-        lower.ColumnDefinitions.Add(new ColumnDefinition());
+        var body = new Grid { Margin = new Thickness(0, 7, 0, 0) };
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) });
+        body.ColumnDefinitions.Add(new ColumnDefinition());
         var info = new StackPanel { Margin = new Thickness(0, 0, 10, 0) };
-        info.Children.Add(SmallLabel("CONTROL TYPE", new Thickness(0, 0, 0, 3)));
+        _selectedControlName.Text = "No control selected";
+        _selectedControlName.FontSize = 17;
+        _selectedControlName.FontWeight = FontWeights.SemiBold;
+        info.Children.Add(_selectedControlName);
+        _selectedControlInput.Foreground = Cyan;
+        _selectedControlInput.FontSize = 9.5;
+        _selectedControlInput.TextWrapping = TextWrapping.Wrap;
+        info.Children.Add(_selectedControlInput);
+        var summary = new Grid { Margin = new Thickness(0, 6, 0, 0) };
+        summary.ColumnDefinitions.Add(new ColumnDefinition());
+        summary.ColumnDefinitions.Add(new ColumnDefinition());
+        var type = new StackPanel();
+        type.Children.Add(SmallLabel("TYPE", new Thickness(0, 0, 0, 2)));
         _selectedControlType.FontWeight = FontWeights.SemiBold;
-        info.Children.Add(_selectedControlType);
-        var settings = new Grid { Margin = new Thickness(0, 10, 0, 0) };
+        type.Children.Add(_selectedControlType);
+        summary.Children.Add(type);
+        var count = new StackPanel();
+        count.Children.Add(SmallLabel("BINDS", new Thickness(0, 0, 0, 2)));
+        _selectedControlAssignmentCount.Text = "0";
+        _selectedControlAssignmentCount.Foreground = Green;
+        _selectedControlAssignmentCount.FontWeight = FontWeights.Bold;
+        count.Children.Add(_selectedControlAssignmentCount);
+        Grid.SetColumn(count, 1);
+        summary.Children.Add(count);
+        info.Children.Add(summary);
+        body.Children.Add(info);
+
+        var response = new Grid();
+        response.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        response.RowDefinitions.Add(new RowDefinition());
+        response.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        response.Children.Add(SmallLabel("LIVE RESPONSE", new Thickness(0, 0, 0, 3)));
+        _responseGraph.Height = 66;
+        _responseGraph.Background = Field;
+        Grid.SetRow(_responseGraph, 1);
+        response.Children.Add(_responseGraph);
+        var settings = new Grid { Margin = new Thickness(0, 5, 0, 0) };
         settings.ColumnDefinitions.Add(new ColumnDefinition());
         settings.ColumnDefinitions.Add(new ColumnDefinition());
-        var deadzoneStack = new StackPanel { Margin = new Thickness(0, 0, 4, 0) };
-        deadzoneStack.Children.Add(SmallLabel("DEADZONE", new Thickness(0, 0, 0, 3)));
+        var deadzoneStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 4, 0) };
+        deadzoneStack.Children.Add(new TextBlock { Text = "DZ", Foreground = Faint, FontSize = 9, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) });
         StyleCombo(_deadzonePicker);
+        _deadzonePicker.Width = 72;
         _deadzonePicker.ItemsSource = new[] { "0%", "2%", "5%", "7%", "10%", "15%", "20%" };
         _deadzonePicker.SelectedItem = "0%";
         _deadzonePicker.SelectionChanged += (_, _) => AxisSettingChanged();
         deadzoneStack.Children.Add(_deadzonePicker);
         settings.Children.Add(deadzoneStack);
-        var curveStack = new StackPanel { Margin = new Thickness(4, 0, 0, 0) };
-        curveStack.Children.Add(SmallLabel("CURVE", new Thickness(0, 0, 0, 3)));
+        var curveStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 0, 0, 0) };
+        curveStack.Children.Add(new TextBlock { Text = "CURVE", Foreground = Faint, FontSize = 9, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) });
         StyleCombo(_curvePicker);
+        _curvePicker.Width = 94;
         _curvePicker.ItemsSource = new[] { "Linear", "Gentle", "Aggressive", "Precision" };
         _curvePicker.SelectedItem = "Linear";
         _curvePicker.SelectionChanged += (_, _) => AxisSettingChanged();
         curveStack.Children.Add(_curvePicker);
         Grid.SetColumn(curveStack, 1);
         settings.Children.Add(curveStack);
-        info.Children.Add(settings);
-        lower.Children.Add(info);
-        var response = new StackPanel();
-        response.Children.Add(SmallLabel("LIVE RESPONSE", new Thickness(0, 0, 0, 4)));
-        _responseGraph.Height = 94;
-        _responseGraph.Background = Field;
-        response.Children.Add(_responseGraph);
+        Grid.SetRow(settings, 2);
+        response.Children.Add(settings);
         Grid.SetColumn(response, 1);
-        lower.Children.Add(response);
-        Grid.SetRow(lower, 2);
-        root.Children.Add(lower);
+        body.Children.Add(response);
+        Grid.SetRow(body, 1);
+        root.Children.Add(body);
         return panel;
     }
 
     private Border BuildAssignmentPanel()
     {
         var panel = Card();
-        panel.Padding = new Thickness(12);
+        panel.Padding = new Thickness(11);
         var grid = new Grid();
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition());
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         panel.Child = grid;
         grid.Children.Add(PanelTitle("ACTION ASSIGNMENT"));
 
-        var primaryHost = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
-        primaryHost.Children.Add(SmallLabel("PRIMARY ACTION", new Thickness(0, 0, 0, 4)));
+        var primaryHost = new StackPanel { Margin = new Thickness(0, 7, 0, 0) };
+        primaryHost.Children.Add(SmallLabel("PRIMARY ACTION", new Thickness(0, 0, 0, 3)));
         var primaryGrid = new Grid();
         primaryGrid.ColumnDefinitions.Add(new ColumnDefinition());
         primaryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(38) });
@@ -337,7 +335,7 @@ public sealed partial class StarbindV5Window
         Grid.SetRow(primaryHost, 1);
         grid.Children.Add(primaryHost);
 
-        var stateTitle = new TextBlock { Text = "STATE BINDINGS", Foreground = Faint, FontSize = 9, Margin = new Thickness(0, 10, 0, 5) };
+        var stateTitle = new TextBlock { Text = "STATE BINDINGS", Foreground = Faint, FontSize = 9, Margin = new Thickness(0, 8, 0, 4) };
         Grid.SetRow(stateTitle, 2);
         grid.Children.Add(stateTitle);
         var stateScroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = _stateRows };
@@ -345,42 +343,19 @@ public sealed partial class StarbindV5Window
         grid.Children.Add(stateScroll);
 
         ConfigureButton(_applyButton, "REVIEW STATE CHANGES", OpenStateBindingEditor, BlueDim);
-        _applyButton.Margin = new Thickness(0, 8, 0, 0);
+        _applyButton.Margin = new Thickness(0, 7, 0, 0);
         _applyButton.HorizontalAlignment = HorizontalAlignment.Stretch;
         Grid.SetRow(_applyButton, 4);
         grid.Children.Add(_applyButton);
-
-        var insight = new Border { Background = Field, BorderBrush = Border, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(4), Padding = new Thickness(9), Margin = new Thickness(0, 9, 0, 0) };
-        var insightGrid = new Grid();
-        insightGrid.ColumnDefinitions.Add(new ColumnDefinition());
-        insightGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var insightWords = new StackPanel();
-        insightWords.Children.Add(new TextBlock { Text = "ABOUT THIS ACTION", Foreground = Faint, FontSize = 9, FontWeight = FontWeights.Bold });
-        _actionDescription.Text = "Choose a control and action.";
-        _actionDescription.TextWrapping = TextWrapping.Wrap;
-        _actionDescription.TextTrimming = TextTrimming.CharacterEllipsis;
-        _actionDescription.MaxHeight = 45;
-        _actionDescription.Foreground = Muted;
-        _actionDescription.Margin = new Thickness(0, 4, 10, 0);
-        insightWords.Children.Add(_actionDescription);
-        insightGrid.Children.Add(insightWords);
-        ConfigureButton(_compareButton, "COMPARE", OpenActionComparison, Panel2);
-        _compareButton.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(_compareButton, 1);
-        insightGrid.Children.Add(_compareButton);
-        insight.Child = insightGrid;
-        Grid.SetRow(insight, 5);
-        grid.Children.Add(insight);
         return panel;
     }
 
     private UIElement BuildBottomWorkspace()
     {
-        var grid = new Grid { Margin = new Thickness(16, 0, 16, 10) };
+        var grid = new Grid { Margin = new Thickness(16, 0, 16, 8) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(310) });
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(500) });
-
         grid.Children.Add(BuildWarningsPanel());
         var browser = BuildActionBrowserPanel();
         browser.Margin = new Thickness(10, 0, 10, 0);
@@ -403,12 +378,12 @@ public sealed partial class StarbindV5Window
         warnings.Child = warningGrid;
         warningGrid.Children.Add(PanelTitle("CONFLICTS & WARNINGS"));
         StyleList(_warnings);
-        _warnings.Margin = new Thickness(0, 8, 0, 0);
+        _warnings.Margin = new Thickness(0, 7, 0, 0);
         _warnings.ItemTemplate = WarningTemplate();
         Grid.SetRow(_warnings, 1);
         warningGrid.Children.Add(_warnings);
         ConfigureButton(_resolveAllButton, "RESOLVE ALL", OpenConflictResolver, Panel2);
-        _resolveAllButton.Margin = new Thickness(0, 8, 0, 0);
+        _resolveAllButton.Margin = new Thickness(0, 7, 0, 0);
         _resolveAllButton.HorizontalAlignment = HorizontalAlignment.Left;
         Grid.SetRow(_resolveAllButton, 2);
         warningGrid.Children.Add(_resolveAllButton);
@@ -434,7 +409,7 @@ public sealed partial class StarbindV5Window
         browserHeader.Children.Add(_actionSearch);
         browserGrid.Children.Add(browserHeader);
 
-        var browserBody = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+        var browserBody = new Grid { Margin = new Thickness(0, 7, 0, 0) };
         browserBody.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(45, GridUnitType.Star) });
         browserBody.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(55, GridUnitType.Star) });
         StyleTree(_actionTree);
@@ -449,15 +424,19 @@ public sealed partial class StarbindV5Window
         _browserActionTitle.FontSize = 13;
         _browserActionTitle.TextWrapping = TextWrapping.Wrap;
         detailGrid.Children.Add(_browserActionTitle);
-        var detailScroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Margin = new Thickness(0, 6, 0, 0), Content = _browserActionBody };
+        var detailScroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Margin = new Thickness(0, 5, 0, 0), Content = _browserActionBody };
         _browserActionBody.Foreground = Muted;
         _browserActionBody.TextWrapping = TextWrapping.Wrap;
         Grid.SetRow(detailScroll, 1);
         detailGrid.Children.Add(detailScroll);
-        var manual = new Button { Content = "VIEW IN GAME MANUAL", Background = Panel2, Foreground = Text, BorderBrush = Border, Padding = new Thickness(10, 7, 10, 7), HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Hand };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 0) };
+        var manual = new Button { Content = "VIEW IN GAME MANUAL", Background = Panel2, Foreground = Text, BorderBrush = Border, Padding = new Thickness(10, 7, 10, 7), Cursor = Cursors.Hand };
         manual.Click += OpenGameManual;
-        Grid.SetRow(manual, 2);
-        detailGrid.Children.Add(manual);
+        buttons.Children.Add(manual);
+        ConfigureButton(_compareButton, "COMPARE ACTIONS", OpenActionComparison, Panel2);
+        buttons.Children.Add(_compareButton);
+        Grid.SetRow(buttons, 2);
+        detailGrid.Children.Add(buttons);
         detail.Child = detailGrid;
         Grid.SetColumn(detail, 1);
         browserBody.Children.Add(detail);
@@ -482,7 +461,7 @@ public sealed partial class StarbindV5Window
             Content = _stateOverview,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Margin = new Thickness(0, 8, 0, 0)
+            Margin = new Thickness(0, 7, 0, 0)
         };
         Grid.SetRow(stateScroll, 1);
         overviewGrid.Children.Add(stateScroll);
