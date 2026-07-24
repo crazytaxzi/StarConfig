@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace StarConfig;
@@ -11,48 +10,55 @@ public sealed partial class StarbindV5Window
     {
         Dispatcher.BeginInvoke(() =>
         {
+            InstallV8Corrections();
+            InstallDeviceNavigationFix();
             ApplyReferenceSizing();
             ApplyToolRowSpacing();
             SelectMostAssignedControl();
-            WidenJoystickArtwork();
+            BuildCorrectedKeyboardControlTree();
+            RefreshCorrectedDeviceArtwork();
+            RefreshCorrectedDeviceThumbnails();
+            BringSelectedDeviceCardIntoView();
         }, DispatcherPriority.Loaded);
     }
 
     private void ApplyReferenceSizing()
     {
         if (Content is not Grid outer || outer.ColumnDefinitions.Count < 2) return;
-        outer.ColumnDefinitions[0].Width = new GridLength(280);
+        outer.ColumnDefinitions[0].Width = new GridLength(0);
+        foreach (var element in outer.Children.OfType<UIElement>().Where(element => Grid.GetColumn(element) == 0))
+            element.Visibility = Visibility.Collapsed;
+
         var application = outer.Children.OfType<Grid>().FirstOrDefault(element => Grid.GetColumn(element) == 1);
         if (application is null) return;
 
         var main = application.Children.OfType<Grid>().FirstOrDefault(element => Grid.GetRow(element) == 2);
         if (main is not null && main.ColumnDefinitions.Count >= 4)
         {
-            main.ColumnDefinitions[0].Width = new GridLength(190);
+            main.ColumnDefinitions[0].Width = new GridLength(230);
             main.ColumnDefinitions[1].Width = new GridLength(1, GridUnitType.Star);
-            main.ColumnDefinitions[2].Width = new GridLength(195);
-            main.ColumnDefinitions[3].Width = new GridLength(310);
+            main.ColumnDefinitions[2].Width = new GridLength(230);
+            main.ColumnDefinitions[3].Width = new GridLength(380);
         }
 
         var bottom = application.Children.OfType<Grid>().FirstOrDefault(element => Grid.GetRow(element) == 3);
         if (bottom is not null && bottom.ColumnDefinitions.Count >= 3)
         {
-            bottom.ColumnDefinitions[0].Width = new GridLength(255);
+            bottom.ColumnDefinitions[0].Width = new GridLength(300);
             bottom.ColumnDefinitions[1].Width = new GridLength(1, GridUnitType.Star);
-            bottom.ColumnDefinitions[2].Width = new GridLength(465);
+            bottom.ColumnDefinitions[2].Width = new GridLength(540);
         }
     }
 
     private void ApplyToolRowSpacing()
     {
-        _view3DButton.FontSize = 9;
-        _view3DButton.Padding = new Thickness(8, 6, 8, 6);
+        _view3DButton.Visibility = Visibility.Collapsed;
         _testButton.FontSize = 9;
-        _testButton.Padding = new Thickness(8, 6, 8, 6);
+        _testButton.Padding = new Thickness(10, 6, 10, 6);
         _showUnassigned.Content = "Show Unassigned Only";
         _showUnassigned.FontSize = 8.5;
         _showUnassigned.Margin = new Thickness(7, 0, 14, 0);
-        _zoomPicker.Width = 70;
+        _zoomPicker.Width = 72;
 
         ScrollViewer.SetHorizontalScrollBarVisibility(_controlTree, ScrollBarVisibility.Disabled);
         ScrollViewer.SetVerticalScrollBarVisibility(_controlTree, ScrollBarVisibility.Auto);
@@ -83,21 +89,7 @@ public sealed partial class StarbindV5Window
 
     private void WidenJoystickArtwork()
     {
-        foreach (var image in Descendants<Image>(_deviceCanvasHost))
-        {
-            if (image.Width < 300 || image.Height < 300 || image.Stretch == Stretch.Fill) continue;
-            image.Stretch = Stretch.Fill;
-            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
-        }
-    }
-
-    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
-        {
-            var child = VisualTreeHelper.GetChild(root, index);
-            if (child is T match) yield return match;
-            foreach (var descendant in Descendants<T>(child)) yield return descendant;
-        }
+        BuildCorrectedKeyboardControlTree();
+        RefreshCorrectedDeviceArtwork();
     }
 }

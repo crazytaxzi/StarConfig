@@ -12,7 +12,7 @@ public sealed partial class StarbindProfileService
     {
         var document = XDocument.Load(filePath, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         var profileElement = document.Descendants().FirstOrDefault(x => x.Name.LocalName.Equals("ActionProfiles", StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidDataException("This XML does not contain a Star Citizen ActionProfiles section.");
+            ?? throw new InvalidDataException("This is not an exported Star Citizen control layout. Export a control profile in game, then choose the resulting layout_*_exported.xml file.");
 
         var profileName = (string?)profileElement.Attribute("profileName") ?? Path.GetFileNameWithoutExtension(filePath);
         var devices = ParseDevices(profileElement, detectedDevices);
@@ -145,7 +145,11 @@ public sealed partial class StarbindProfileService
                         Path.Combine(channel, "USER", "Controls", "Mappings")
                     }.Where(Directory.Exists))
                     {
-                        try { foreach (var file in Directory.EnumerateFiles(mappingFolder, "*.xml")) results.Add(file); }
+                        try
+                        {
+                            foreach (var file in Directory.EnumerateFiles(mappingFolder, "*.xml"))
+                                if (StarbindV5SettingsStore.IsUsableProfile(file)) results.Add(file);
+                        }
                         catch { }
                     }
                 }
@@ -153,5 +157,4 @@ public sealed partial class StarbindProfileService
         }
         return results.OrderBy(x => x).ToList();
     }
-
 }

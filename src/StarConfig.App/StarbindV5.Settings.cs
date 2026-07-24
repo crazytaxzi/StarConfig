@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace StarConfig;
 
@@ -32,16 +33,10 @@ public sealed class StarbindV5SettingsStore
 
     public IReadOnlyList<string> DiscoverProfiles(StarbindV5Settings settings)
     {
-        var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(settings.LastProfile) && File.Exists(settings.LastProfile)) files.Add(settings.LastProfile);
-        foreach (var folder in settings.ProfileFolders.Where(Directory.Exists))
-        {
-            try
-            {
-                foreach (var file in Directory.EnumerateFiles(folder, "*.xml", SearchOption.TopDirectoryOnly)) files.Add(file);
-            }
-            catch { }
-        }
+        var candidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(settings.LastProfile) && File.Exists(settings.LastProfile)) candidates.Add(settings.LastProfile);
+
+        foreach (var folder in settings.ProfileFolders.Where(Directory.Exists)) AddXmlFiles(folder, candidates);
 
         foreach (var drive in DriveInfo.GetDrives().Where(drive => drive.IsReady && drive.DriveType == DriveType.Fixed))
         {
@@ -50,6 +45,7 @@ public sealed class StarbindV5SettingsStore
                 IEnumerable<string> channels;
                 try { channels = Directory.EnumerateDirectories(starCitizenRoot); }
                 catch { continue; }
+
                 foreach (var channel in channels)
                 {
                     foreach (var folder in new[]
@@ -59,18 +55,39 @@ public sealed class StarbindV5SettingsStore
                     }.Where(Directory.Exists))
                     {
                         settings.ProfileFolders.Add(folder);
-                        try
-                        {
-                            foreach (var file in Directory.EnumerateFiles(folder, "*.xml", SearchOption.TopDirectoryOnly)) files.Add(file);
-                        }
-                        catch { }
+                        AddXmlFiles(folder, candidates);
                     }
                 }
             }
         }
 
         settings.ProfileFolders = settings.ProfileFolders.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        return files.OrderByDescending(File.GetLastWriteTime).ThenBy(Path.GetFileName).ToList();
+        var profiles = candidates.Where(IsUsableProfile)
+            .OrderByDescending(File.GetLastWriteTime)
+            .ThenBy(Path.GetFileName)
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(settings.LastProfile) && !profiles.Contains(settings.LastProfile, StringComparer.OrdinalIgnoreCase))
+            settings.LastProfile = null;
+        return profiles;
+    }
+
+    public static bool IsUsableProfile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return false;
+        try
+        {
+            var info = new FileInfo(filePath);
+            if (info.Length < 80) return false;
+            var document = XDocument.Load(filePath, LoadOptions.None);
+            var hasProfile = document.Descendants().Any(element => element.Name.LocalName.Equals("ActionProfiles", StringComparison.OrdinalIgnoreCase));
+            var hasActionMap = document.Descendants().Any(element => element.Name.LocalName.Equals("actionmap", StringComparison.OrdinalIgnoreCase));
+            return hasProfile && hasActionMap;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public string? FindLauncher(StarbindV5Settings settings)
@@ -99,6 +116,15 @@ public sealed class StarbindV5SettingsStore
                 || segment.Equals("TECH-PREVIEW", StringComparison.OrdinalIgnoreCase)) return segment.ToUpperInvariant();
         }
         return "CUSTOM";
+    }
+
+    private static void AddXmlFiles(string folder, HashSet<string> candidates)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(folder, "*.xml", SearchOption.TopDirectoryOnly)) candidates.Add(file);
+        }
+        catch { }
     }
 
     private static IEnumerable<string> CandidateStarCitizenRoots(string driveRoot)

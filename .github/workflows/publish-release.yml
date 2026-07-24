@@ -4,14 +4,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '.release-trigger/v0.7.0.txt'
+      - '.release-trigger/v0.7.1.txt'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: starbind-release-v0.7.0
+  group: starbind-release-v0.7.1
   cancel-in-progress: false
 
 jobs:
@@ -71,17 +71,17 @@ jobs:
       - name: Upload verified release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Starbind-Setup-v0.7.0
+          name: Starbind-Setup-v0.7.1
           path: |
             dist/Installer/Starbind-Setup.exe
             dist/Installer/Starbind-Setup.exe.sha256.txt
           if-no-files-found: error
 
-      - name: Publish Starbind v0.7.0
+      - name: Publish Starbind v0.7.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.7.0
-          name: Starbind v0.7.0
+          tag_name: v0.7.1
+          name: Starbind v0.7.1
           target_commitish: main
           draft: false
           prerelease: false
@@ -92,29 +92,31 @@ jobs:
             dist/Installer/Starbind-Setup.exe
             dist/Installer/Starbind-Setup.exe.sha256.txt
           body: |
-            Starbind v0.7.0 rebuilds the running application against the approved Starbind cockpit mock-up while omitting the Windows-only branding.
+            Starbind v0.7.1 is a correction release focused on making the control mapper honest, flexible and useful.
 
-            - Restores the Scope Overview and Key Features guidance rail without a Windows-only badge
-            - Uses the four-column hardware-first cockpit shown in the approved reference
-            - Makes the selected physical device and hardware map the visual center of the application
-            - Reduces callout clutter with ordered left/right lanes and friendly action labels
-            - Differentiates left and right joystick artwork and provides distinct throttle, pedals, keyboard, mouse and gamepad presentations
-            - Replaces oversized native scrollbars, selectors and checkboxes with compact Starbind controls
-            - Uses friendly action names such as Move Forward / Backward and Throttle - Forward / Backward throughout the normal workflow
-            - Strengthens action intelligence and preserves Axis, Toggle, Cycle, Hold and Direct distinctions
-            - Keeps Operator Mode and Master Mode explicitly separate
-            - Shows the Keep All / Let Me Choose / Remove From Which State decision directly over the hardware workspace
-            - Selects the control used across the most game states when a profile opens
-            - Keeps action browsing and raw XML names secondary to the physical-control workflow
-            - Preserves live input capture, response curves, deadzones, conflict resolution, profile management, validation, backups and Save and Launch
-            - Verified by compilation, profile/hardware/action-language regression tests, packaged desktop startup, real Windows UI capture, portable publishing and installer packaging
+            - Removes the Scope Overview rail and gives the hardware workspace the full application width
+            - Replaces the generic joystick photo with model-specific schematics for VKB Gladiator, VKB STECS, Logitech rudder pedals, Thrustmaster T.16000M and VIRPIL sticks
+            - Adds distinct keyboard, mouse, gamepad, throttle and pedal presentations
+            - Rebuilds the keyboard as a complete interactive layout with function keys, main cluster, modifiers, navigation, arrows and numpad
+            - Restores drag-and-drop from the action browser onto viewer controls, keyboard keys and control-tree entries
+            - Adds an Extra Physical Controls tray so buttons without drawing hotspots, including Button 28, remain visible and droppable
+            - Makes the complete action catalog available from every physical control while saving actions in their actual Star Citizen game state
+            - Supports arbitrary bindings such as Joystick 2 Button 28 to Radar Ping or Scan
+            - Corrects Cycle, Toggle, Axis, Hold and Direct labels and removes duplicate action choices
+            - Keeps Master Mode and Operator Mode explicitly separate
+            - Silently ignores unrelated XML files such as actionmaps.xml during automatic profile discovery
+            - Replaces the nonfunctional 3D box with nothing rather than presenting a fake feature
+            - Replaces the old Test Device command with live keyboard, mouse, joystick, throttle, pedal and gamepad diagnostics
+            - Fixes the Keep All confirmation so it dismisses after the decision
+            - Preserves profile backups, validation, response curves, deadzones, conflict handling and Save and Launch
+            - Verified by compilation, profile-discovery and arbitrary-binding regression tests, packaged desktop startup, real Windows UI interaction capture, portable publishing and installer packaging
 
       - name: Download and verify the public release asset
         shell: pwsh
         run: |
           $built = '.\dist\Installer\Starbind-Setup.exe'
           $downloaded = Join-Path $env:RUNNER_TEMP 'Starbind-Setup-public.exe'
-          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v0.7.0/Starbind-Setup.exe"
+          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v0.7.1/Starbind-Setup.exe"
           $expectedHash = (Get-FileHash $built -Algorithm SHA256).Hash
           $attempts = 0
           do {
@@ -130,7 +132,7 @@ jobs:
               Start-Sleep -Seconds 10
             }
           } while ($true)
-          "Version: 0.7.0" | Set-Content release-verification.txt
+          "Version: 0.7.1" | Set-Content release-verification.txt
           "Asset: Starbind-Setup.exe" | Add-Content release-verification.txt
           "SHA256: $expectedHash" | Add-Content release-verification.txt
           "VerifiedAtUtc: $([DateTime]::UtcNow.ToString('o'))" | Add-Content release-verification.txt
@@ -139,11 +141,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force '.release-verified' | Out-Null
-          Copy-Item release-verification.txt '.release-verified\v0.7.0.txt' -Force
+          Copy-Item release-verification.txt '.release-verified\v0.7.1.txt' -Force
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add '.release-verified/v0.7.0.txt'
+          git add '.release-verified/v0.7.1.txt'
           if (-not (git diff --cached --quiet)) {
-            git commit -m 'Verify public Starbind v0.7.0 installer'
+            git commit -m 'Verify public Starbind v0.7.1 installer'
             git push origin HEAD:main
           }

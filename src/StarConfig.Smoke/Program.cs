@@ -18,6 +18,10 @@ var xml = """
    <action name="v_operator_mode_cycle"><rebind input="js1_button7"/></action>
    <action name="v_master_mode_cycle"><rebind input="js1_button8"/></action>
   </actionmap>
+  <actionmap name="spaceship_scanning">
+   <action name="v_invoke_ping"><rebind input="js2_button28"/></action>
+   <action name="v_scan_trigger_scan"><rebind input="js2_button27"/></action>
+  </actionmap>
   <actionmap name="vehicle_movement">
    <action name="vehicle_throttle_abs"><rebind input="js2_y"/></action>
    <action name="vehicle_steer"><rebind input="js1_x"/></action>
@@ -42,10 +46,18 @@ var xml = """
 var tempRoot = Path.Combine(Path.GetTempPath(), "StarbindSmoke-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(tempRoot);
 var file = Path.Combine(tempRoot, "layout_smoke_exported.xml");
+var unrelatedXml = Path.Combine(tempRoot, "actionmaps.xml");
 File.WriteAllText(file, xml);
+File.WriteAllText(unrelatedXml, "<not-a-profile><actionmaps /></not-a-profile>");
 
 try
 {
+    Require(StarbindV5SettingsStore.IsUsableProfile(file), "A valid exported profile was rejected by discovery validation.");
+    Require(!StarbindV5SettingsStore.IsUsableProfile(unrelatedXml), "Unrelated actionmaps.xml was incorrectly treated as an exported profile.");
+    var discovered = new StarbindV5SettingsStore().DiscoverProfiles(new StarbindV5Settings { ProfileFolders = [tempRoot] });
+    Require(discovered.Contains(file, StringComparer.OrdinalIgnoreCase), "Valid exported profile was not discovered.");
+    Require(!discovered.Contains(unrelatedXml, StringComparer.OrdinalIgnoreCase), "Unrelated XML leaked into the profile picker.");
+
     var service = new StarbindProfileService();
     var detected = new[] { new InputDevice(1, "Microsoft PC-joystick driver", 32, 6), new InputDevice(2, "Microsoft PC-joystick driver", 32, 6) };
     var profile = service.Load(file, detected);
@@ -63,6 +75,8 @@ try
     Require(profile.Actions.Single(x => x.ActionName == "moveforward").Behavior == "Axis", "On-foot movement was not classified as an axis-compatible action.");
     Require(profile.Actions.Single(x => x.ActionName == "moveforward").DisplayName == "Move Forward / Backward", "Friendly on-foot movement name was not used.");
     Require(profile.Actions.Single(x => x.ActionName == "turret_elevation").DisplayName == "Turret Elevation", "Friendly turret action name was not used.");
+    Require(profile.Actions.Single(x => x.ActionName == "v_invoke_ping").Input == "js2_button28", "Radar Ping could not remain bound to an arbitrary physical button.");
+    Require(profile.Actions.Single(x => x.ActionName == "v_scan_trigger_scan").Input == "js2_button27", "Start Scan could not remain bound to an arbitrary physical button.");
     Require(profile.Actions.Single(x => x.ActionName == "v_atc_loading_area_request").Attributes.TryGetValue("multiTap", out var multiTap) && multiTap == "2", "Rebind attributes were not preserved.");
     Require(profile.Actions.Single(x => x.ActionName == "v_operator_mode_cycle").Intent == "Operator Mode", "Operator Mode intent classification failed.");
     Require(profile.Actions.Single(x => x.ActionName == "v_master_mode_cycle").Intent == "Master Mode", "Master Mode intent classification failed.");
@@ -134,7 +148,7 @@ try
     Require((string?)zOption!.Attribute("deadzone") == "0.050000", "Axis deadzone was not persisted.");
     Require((string?)zOption.Attribute("exponent") == "1.350000", "Axis response curve exponent was not persisted.");
 
-    Console.WriteLine("Starbind profile, hardware, action-language and workspace smoke tests passed.");
+    Console.WriteLine("Starbind profile discovery, hardware, action-language and workspace smoke tests passed.");
 }
 finally
 {
